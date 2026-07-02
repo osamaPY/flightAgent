@@ -15,25 +15,25 @@ class Notifier:
         link_a = generate_booking_link(result.a_origin, result.destination, result.outbound_date, result.return_date)
         link_b = generate_booking_link(result.b_origin, result.destination, result.outbound_date, result.return_date)
         
-        dest_display = f"{result.dest_city} ({result.destination})"
-        fairness = "Fair" if result.fairness_penalty < 15 else "Balanced" if result.fairness_penalty < 30 else "Lopsided"
+        dest_info = next((a for a in CANDIDATE_DESTINATIONS if a.iata == result.destination), None)
+        dest_display = f"{dest_info.flag if dest_info else '📍'} **{result.dest_city}** ({result.destination})"
+        fairness = "✅ Balanced" if result.fairness_penalty < 15 else "⚖️ Fair" if result.fairness_penalty < 30 else "⚠️ Lopsided"
         
         # Weather fetch
         weather_text = ""
-        dest_info = next((a for a in CANDIDATE_DESTINATIONS if a.iata == result.destination), None)
         if dest_info:
             forecast = self.weather.get_forecast(dest_info.lat, dest_info.lon, result.outbound_date)
             if forecast:
-                weather_text = f"Weather: {forecast}\n"
+                weather_text = f"🌡️ Weather: {forecast}\n"
 
         return (
-            f"**{dest_display}**\n"
-            f"Total: €{result.total_price:.2f} ({fairness})\n\n"
+            f"{dest_display}\n"
+            f"💰 €{result.total_price:.2f} ({fairness})\n\n"
             f"{weather_text}"
-            f"A ({result.a_origin}): €{result.a_price:.2f} — [Book]({link_a})\n"
-            f"B ({result.b_origin}): €{result.b_price:.2f} — [Book]({link_b})\n\n"
-            f"Dates: {result.outbound_date} to {result.return_date}\n"
-            f"Gap: {result.arrival_gap_hours}h\n"
+            f"🅰️ ({result.a_origin}): €{result.a_price:.2f} — [Book]({link_a})\n"
+            f"🅱️ ({result.b_origin}): €{result.b_price:.2f} — [Book]({link_b})\n\n"
+            f"📅 Dates: {result.outbound_date} to {result.return_date}\n"
+            f"⏳ Gap: {result.arrival_gap_hours}h\n"
         )
 
     def format_results_list(self, results: list) -> str:

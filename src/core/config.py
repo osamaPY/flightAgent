@@ -30,7 +30,7 @@ class Config:
     DUFFEL_TOKEN = os.getenv("DUFFEL_TOKEN")
 
     @staticmethod
-    def generate_weekend_windows(count: int = 8) -> List[DateWindow]:
+    def generate_weekend_windows(count: int = 12) -> List[DateWindow]:
         windows = []
         today = datetime.now()
         # Find next Friday

@@ -48,16 +48,16 @@ def get_app_context():
 
 async def get_menu_keyboard():
     keyboard = [
-        [InlineKeyboardButton("Search", callback_data='search')],
-        [InlineKeyboardButton("Verify", callback_data='verify')],
-        [InlineKeyboardButton("Results", callback_data='results')],
-        [InlineKeyboardButton("Status", callback_data='status')],
-        [InlineKeyboardButton("Stop", callback_data='stop')],
-        [InlineKeyboardButton("Logs", callback_data='logs')],
-        [InlineKeyboardButton("Health", callback_data='health'), 
-         InlineKeyboardButton("Selftest", callback_data='selftest')],
-        [InlineKeyboardButton("Discover", callback_data='discover')],
-        [InlineKeyboardButton("Clear", callback_data='clear')]
+        [InlineKeyboardButton("🔍 Search", callback_data='search'),
+         InlineKeyboardButton("✅ Verify", callback_data='verify')],
+        [InlineKeyboardButton("📊 Results", callback_data='results'),
+         InlineKeyboardButton("📡 Status", callback_data='status')],
+        [InlineKeyboardButton("🛑 Stop", callback_data='stop'),
+         InlineKeyboardButton("📜 Logs", callback_data='logs')],
+        [InlineKeyboardButton("🏥 Health", callback_data='health'), 
+         InlineKeyboardButton("🧪 Selftest", callback_data='selftest')],
+        [InlineKeyboardButton("🌍 Discover", callback_data='discover'),
+         InlineKeyboardButton("🧹 Clear", callback_data='clear')]
     ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -65,7 +65,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     from src.core.config import Config
     origins_b = ", ".join(Config.ORIGINS_B)
     welcome_text = (
-        "Flight Meet\n\n"
+        "✈️ **Flight Meet**\n\n"
         f"Find cheap meetups from {origins_b}."
     )
     reply_markup = await get_menu_keyboard()
@@ -198,10 +198,10 @@ async def cmd_results(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     if not rows:
-        await msg.reply_text("No results.")
+        await msg.reply_text("📭 No results.")
         return
 
-    text = "Best Fair Meetups:\n\n"
+    text = "💎 **Best Fair Meetups**\n\n"
     
     seen = set()
     count = 0
@@ -212,20 +212,19 @@ async def cmd_results(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if key in seen: continue
         seen.add(key)
         
+        from src.core.airports import CANDIDATE_DESTINATIONS
         dest_info = next((a for a in CANDIDATE_DESTINATIONS if a.iata == dest), None)
         city = dest_info.city if dest_info else dest
+        flag = dest_info.flag if dest_info else "📍"
         
-        link_a = generate_booking_link(a_org, dest, out, ret)
-        link_b = generate_booking_link(b_org, dest, out, ret)
-        
-        fairness_label = "Balanced" if fairness < 15 else "Fair" if fairness < 30 else "Lopsided"
+        fairness_label = "✅ Balanced" if fairness < 15 else "⚖️ Fair" if fairness < 30 else "⚠️ Lopsided"
         
         text += (
-            f"**{city}** ({dest})\n"
-            f"{out} to {ret}\n"
-            f"€{total:.2f} | {fairness_label}\n"
-            f"A: €{a_p:.2f} | B: €{b_p:.2f}\n"
-            f"[Book A]({link_a}) | [Book B]({link_b})\n\n"
+            f"{flag} **{city}** ({dest})\n"
+            f"📅 {out} to {ret}\n"
+            f"💰 €{total:.2f} | {fairness_label}\n"
+            f"🅰️: €{a_p:.2f} | 🅱️: €{b_p:.2f}\n"
+            f"🔗 [Book A]({link_a}) | [Book B]({link_b})\n\n"
         )
         
         count += 1
