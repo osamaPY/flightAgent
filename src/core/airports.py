@@ -68,6 +68,21 @@ CANDIDATE_DESTINATIONS = [
     Airport("SVQ", "Seville", "Seville", "Spain", "🇪🇸", 37.42, -5.89),
     Airport("ALC", "Alicante–Elche", "Alicante", "Spain", "🇪🇸", 38.28, -0.56),
     Airport("BIO", "Bilbao", "Bilbao", "Spain", "🇪🇸", 43.30, -2.91),
+    Airport("FCO", "Rome Fiumicino", "Rome", "Italy", "🇮🇹", 41.80, 12.23),
+    Airport("CIA", "Rome Ciampino", "Rome", "Italy", "🇮🇹", 41.80, 12.59),
+    Airport("MLA", "Malta", "Malta", "Malta", "🇲🇹", 35.85, 14.47),
+    Airport("GVA", "Geneva", "Geneva", "Switzerland", "🇨🇭", 46.23, 6.10),
+    Airport("LUX", "Luxembourg", "Luxembourg", "Luxembourg", "🇱🇺", 49.62, 6.20),
+    Airport("BTS", "Bratislava", "Bratislava", "Slovakia", "🇸🇰", 48.17, 17.21),
+    Airport("LJU", "Ljubljana", "Ljubljana", "Slovenia", "🇸🇮", 46.22, 14.45),
+    Airport("IBZ", "Ibiza", "Ibiza", "Spain", "🇪🇸", 38.87, 1.37),
+    Airport("MAH", "Menorca", "Menorca", "Spain", "🇪🇸", 39.86, 4.21),
+    Airport("RHO", "Rhodes", "Rhodes", "Greece", "🇬🇷", 36.40, 28.08),
+    Airport("JTR", "Santorini", "Santorini", "Greece", "🇬🇷", 36.40, 25.47),
+    Airport("JMK", "Mykonos", "Mykonos", "Greece", "🇬🇷", 37.43, 25.34),
+    Airport("ZAD", "Zadar", "Zadar", "Croatia", "🇭🇷", 44.10, 15.34),
+    Airport("SPU", "Split", "Split", "Croatia", "🇭🇷", 43.53, 16.29),
+    Airport("DBV", "Dubrovnik", "Dubrovnik", "Croatia", "🇭🇷", 42.56, 18.26),
 ]
 
 def get_destinations(exclude_iatas: List[str]) -> List[Airport]:
