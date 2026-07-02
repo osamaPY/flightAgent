@@ -194,7 +194,7 @@ async def cmd_results(update: Update, context: ContextTypes.DEFAULT_TYPE):
             """)
             rows = cursor.fetchall()
     except Exception as e:
-        await msg.reply_text(f"❌ Database error: {e}. Try running a search first.")
+        await msg.reply_text(f"Database error: {e}. Run search first.")
         return
     
     if not rows:
@@ -223,10 +223,9 @@ async def cmd_results(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text += (
             f"**{city}** ({dest})\n"
             f"{out} to {ret}\n"
-            f"Total: €{total:.2f} | {fairness_label}\n"
-            f"A ({a_org}): €{a_p:.2f} | B: €{b_p:.2f}\n"
-            f"Gap: {gap}h | [Book A]({link_a}) | [Book B]({link_b})\n"
-            f"---\n"
+            f"€{total:.2f} | {fairness_label}\n"
+            f"A: €{a_p:.2f} | B: €{b_p:.2f}\n"
+            f"[Book A]({link_a}) | [Book B]({link_b})\n\n"
         )
         
         count += 1

@@ -257,7 +257,6 @@ def show_latest_results(storage: Storage) -> None:
         count += 1
         if count >= 15: break
     print("-" * 75)
-    print("\nVerify manually before booking.")
 
 def discover_mode(providers: List[FlightProvider]) -> None:
     """Discovery mode using Travelpayouts specifically if available."""
@@ -290,14 +289,12 @@ def discover_mode(providers: List[FlightProvider]) -> None:
         print("\nYou can add these to airports.py if you want to track them.")
     else:
         print("No new shared destinations found.")
-    print("\nVerify manually before booking.")
 
 def test_providers(providers: List[FlightProvider]) -> None:
     print("\n--- Provider Health Check ---")
     for p in providers:
         status = "HEALTHY" if p.is_healthy() else "UNAVAILABLE/ERROR"
         print(f"{p.name():<25}: {status}")
-    print("\nVerify manually before booking.")
 
 def selftest(storage: Storage, notifier: Notifier, providers: List[FlightProvider]) -> None:
     print("\n--- System Selftest ---")
@@ -316,8 +313,6 @@ def selftest(storage: Storage, notifier: Notifier, providers: List[FlightProvide
     
     for p in providers:
         check(f"Provider: {p.name()}", p.is_healthy())
-        
-    print("\nVerify manually before booking.")
 
 def show_menu():
     print("\n" + "="*25)
@@ -329,7 +324,7 @@ def show_menu():
     print("4. Discover")
     print("5. Health")
     print("6. Selftest")
-    print("7. Notify Test")
+    print("7. Notify")
     print("8. Clear")
     print("0. Exit")
     return input("\nChoice: ")

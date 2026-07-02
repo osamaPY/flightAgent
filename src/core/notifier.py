@@ -28,14 +28,12 @@ class Notifier:
 
         return (
             f"**{dest_display}**\n"
-            f"---\n"
             f"Total: €{result.total_price:.2f} ({fairness})\n\n"
             f"{weather_text}"
             f"A ({result.a_origin}): €{result.a_price:.2f} — [Book]({link_a})\n"
             f"B ({result.b_origin}): €{result.b_price:.2f} — [Book]({link_b})\n\n"
             f"Dates: {result.outbound_date} to {result.return_date}\n"
             f"Gap: {result.arrival_gap_hours}h\n"
-            f"Source: {result.source}\n"
         )
 
     def format_results_list(self, results: list) -> str:

@@ -22,16 +22,12 @@ class BookingComClient:
     def search_round_trip(self, origin: str, destination: str, out_date: str, ret_date: str) -> List[Flight]:
         """
         Searches for the minimum price for a round trip.
-        Note: This API's getMinPriceMultiStops endpoint takes legs as a JSON string.
         """
         if not self.api_key:
             return []
 
         url = f"{self.base_url}/getMinPriceMultiStops"
         
-        # Format legs as a list of objects then JSON stringify
-        # Note: Origin and destination must be SkyIds or IATA. The playground showed 'BOM.AIRPORT'
-        # We'll try just IATA first, as most RapidAPIs support it.
         legs = [
             {"fromId": f"{origin}.AIRPORT", "toId": f"{destination}.AIRPORT", "date": out_date},
             {"fromId": f"{destination}.AIRPORT", "toId": f"{origin}.AIRPORT", "date": ret_date}
@@ -44,11 +40,14 @@ class BookingComClient:
         }
 
         try:
-            time.sleep(1.0) # Respect Rate Limits
+            time.sleep(1.0)
             response = requests.get(url, headers=self.headers, params=params, timeout=20)
             
+            if response.status_code == 429:
+                log_error("Booking.com API: 429 Too Many Requests. Skipping.")
+                return []
             if response.status_code == 403:
-                log_error("Booking.com API: 403 Forbidden (Check subscription)")
+                log_error("Booking.com API: 403 Forbidden. Check subscription.")
                 return []
                 
             response.raise_for_status()
