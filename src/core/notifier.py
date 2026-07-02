@@ -15,8 +15,8 @@ class Notifier:
         link_a = generate_booking_link(result.a_origin, result.destination, result.outbound_date, result.return_date)
         link_b = generate_booking_link(result.b_origin, result.destination, result.outbound_date, result.return_date)
         
-        dest_display = f"{result.dest_flag} {result.dest_city}, {result.dest_country} ({result.destination})"
-        fairness = "✅ Fair Deal" if result.fairness_penalty < 15 else "⚖️ Balanced" if result.fairness_penalty < 30 else "⚠️ Lopsided"
+        dest_display = f"{result.dest_city} ({result.destination})"
+        fairness = "Fair" if result.fairness_penalty < 15 else "Balanced" if result.fairness_penalty < 30 else "Lopsided"
         
         # Weather fetch
         weather_text = ""
@@ -24,32 +24,29 @@ class Notifier:
         if dest_info:
             forecast = self.weather.get_forecast(dest_info.lat, dest_info.lon, result.outbound_date)
             if forecast:
-                weather_text = f"🌤 **Weather:** {forecast}\n"
+                weather_text = f"Weather: {forecast}\n"
 
         return (
-            f"📍 **{dest_display}**\n"
-            f"━━━━━━━━━━━━━━━━━━━━━\n"
-            f"💰 **Total: €{result.total_price:.2f}** ({fairness})\n\n"
+            f"**{dest_display}**\n"
+            f"---\n"
+            f"Total: €{result.total_price:.2f} ({fairness})\n\n"
             f"{weather_text}"
-            f"👨‍💻 **Milan ({result.a_origin}):** €{result.a_price:.2f} — [Book]({link_a})\n"
-            f"👩‍💼 **Riga ({result.b_origin}):** €{result.b_price:.2f} — [Book]({link_b})\n\n"
-            f"📅 **{result.outbound_date} ➔ {result.return_date}**\n"
-            f"⏳ Landing Gap: {result.arrival_gap_hours}h\n"
-            f"🔌 Source: {result.source}\n"
-            f"⚠️ Verify manually before booking."
+            f"A ({result.a_origin}): €{result.a_price:.2f} — [Book]({link_a})\n"
+            f"B ({result.b_origin}): €{result.b_price:.2f} — [Book]({link_b})\n\n"
+            f"Dates: {result.outbound_date} to {result.return_date}\n"
+            f"Gap: {result.arrival_gap_hours}h\n"
+            f"Source: {result.source}\n"
         )
 
     def format_results_list(self, results: list) -> str:
         if not results:
-            return "📭 No results found."
+            return "No results."
         
-        text = "📊 **Top 10 Fair Deals:**\n\n"
+        text = "Top Deals:\n\n"
         for i, res in enumerate(results[:10]):
-            fairness = "✅" if res.fairness_penalty < 15 else "⚖️" if res.fairness_penalty < 30 else "⚠️"
-            text += f"{i+1}. {res.dest_flag} **{res.dest_city}** — €{res.total_price:.2f} {fairness}\n"
-            text += f"   📅 {res.outbound_date} | 🔌 {res.source}\n\n"
+            text += f"{i+1}. **{res.dest_city}** — €{res.total_price:.2f}\n"
+            text += f"   {res.outbound_date} | {res.source}\n\n"
         
-        text += "Use /results to see more or /search to refresh."
         return text
 
     def send_message(self, text: str):

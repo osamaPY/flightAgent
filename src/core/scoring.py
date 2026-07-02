@@ -35,7 +35,7 @@ class MeetupResult:
     dest_country: str = ""
     dest_flag: str = ""
     fairness_penalty: float = 0.0
-    warning: str = "Verify manually before booking (check baggage, times, booking link)."
+    warning: str = "Verify manually."
 
 def generate_booking_link(origin: str, dest: str, outbound: str, return_date: str) -> str:
     """Generates a Google Flights booking link."""
@@ -85,7 +85,7 @@ def score_meetup(a_flight: Flight, b_flight: Flight) -> Optional[MeetupResult]:
         is_approximate=a_flight.is_approximate or b_flight.is_approximate,
         dest_city=dest_info.city if dest_info else "",
         dest_country=dest_info.country if dest_info else "",
-        dest_flag=dest_info.flag if dest_info else "📍",
+        dest_flag="",
         fairness_penalty=round(fairness_penalty, 2)
     )
 

@@ -48,16 +48,16 @@ def get_app_context():
 
 async def get_menu_keyboard():
     keyboard = [
-        [InlineKeyboardButton("🚀 Start Search (Fast/Free)", callback_data='search')],
-        [InlineKeyboardButton("✅ Verify Best Deals (Paid)", callback_data='verify')],
-        [InlineKeyboardButton("📜 View Latest Results", callback_data='results')],
-        [InlineKeyboardButton("📊 Check Status", callback_data='status')],
-        [InlineKeyboardButton("🛑 Stop Search", callback_data='stop')],
-        [InlineKeyboardButton("📊 View Logs", callback_data='logs')],
-        [InlineKeyboardButton("🏥 Health Check", callback_data='health'), 
-         InlineKeyboardButton("🛠 Selftest", callback_data='selftest')],
-        [InlineKeyboardButton("🔎 Discover Cities", callback_data='discover')],
-        [InlineKeyboardButton("🧹 Clear History", callback_data='clear')]
+        [InlineKeyboardButton("Search", callback_data='search')],
+        [InlineKeyboardButton("Verify", callback_data='verify')],
+        [InlineKeyboardButton("Results", callback_data='results')],
+        [InlineKeyboardButton("Status", callback_data='status')],
+        [InlineKeyboardButton("Stop", callback_data='stop')],
+        [InlineKeyboardButton("Logs", callback_data='logs')],
+        [InlineKeyboardButton("Health", callback_data='health'), 
+         InlineKeyboardButton("Selftest", callback_data='selftest')],
+        [InlineKeyboardButton("Discover", callback_data='discover')],
+        [InlineKeyboardButton("Clear", callback_data='clear')]
     ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -65,12 +65,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     from src.core.config import Config
     origins_b = ", ".join(Config.ORIGINS_B)
     welcome_text = (
-        "✈️ **Welcome to Flight Meet Agent!**\n\n"
-        f"I can help you find the cheapest European cities to meet with your friend from {origins_b}.\n\n"
-        "Use the buttons below to control the agent:"
+        "Flight Meet\n\n"
+        f"Find cheap meetups from {origins_b}."
     )
     reply_markup = await get_menu_keyboard()
-    await update.message.reply_text(welcome_text, parse_mode='Markdown', reply_markup=reply_markup)
+    await update.message.reply_text(welcome_text, reply_markup=reply_markup)
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -103,37 +102,36 @@ async def cmd_clear(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.effective_message
     storage, _, _ = get_app_context()
     storage.clear_results()
-    await msg.reply_text("🧹 Database results cleared! Ready for a fresh start.")
+    await msg.reply_text("History cleared.")
 
 async def cmd_search(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.effective_message
     if context.bot_data.get("search_active"):
-        await msg.reply_text("🚨 A search is already running! Use /status to check progress or /stop to abort.")
+        await msg.reply_text("Search running.")
         return
 
-    await msg.reply_text("🚀 Starting full scan! I will update you every 5 cities and notify you when finished.")
+    await msg.reply_text("Search started.")
     storage, notifier, providers = get_app_context()
     
     # Use bot_data for global search state
     context.bot_data["search_active"] = True
-    context.bot_data["current_city"] = "Initializing..."
+    context.bot_data["current_city"] = "Init"
     context.bot_data["progress"] = "0/0"
     SEARCH_STOP_EVENT.clear()
 
     def progress_callback(current, total, city):
         context.bot_data["current_city"] = city
         context.bot_data["progress"] = f"{current}/{total}"
-        # Update user every 5 cities to avoid spamming but show bot is alive
         if current == 1 or current % 5 == 0 or current == total:
-            notifier.send_message(f"🛰 **Progress Update:** Scanning city {current} of {total} ({city})...")
+            notifier.send_message(f"Scanning {current}/{total} ({city})")
 
     async def run_scan():
         try:
             await asyncio.to_thread(monitor_mode, storage, notifier, providers, progress_callback)
             if not SEARCH_STOP_EVENT.is_set():
-                await update.effective_message.reply_text("✅ Scan completed successfully! Use 'View Latest Results' button to see them.")
+                await update.effective_message.reply_text("Done.")
         except Exception as e:
-            await update.effective_message.reply_text(f"❌ Error during scan: {e}")
+            await update.effective_message.reply_text(f"Error: {e}")
         finally:
             context.bot_data["search_active"] = False
 
@@ -141,42 +139,42 @@ async def cmd_search(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_verify(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.effective_message
-    await msg.reply_text("🔎 **Verification Started:** I'm re-checking the top 5 candidates with paid APIs (SerpApi/Google Flights). This may take a minute...")
+    await msg.reply_text("Verifying top candidates.")
     
     storage, notifier, providers = get_app_context()
     
     async def run_verify():
         try:
             await asyncio.to_thread(verify_mode, storage, notifier, providers)
-            await msg.reply_text("✅ Verification finished! Check the messages above for confirmed deals.")
+            await msg.reply_text("Verification done.")
         except Exception as e:
-            await msg.reply_text(f"❌ Error during verification: {e}")
+            await msg.reply_text(f"Error: {e}")
 
     asyncio.create_task(run_verify())
 
 async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.effective_message
     if not context.bot_data.get("search_active"):
-        await msg.reply_text("ℹ️ No active search running.")
+        await msg.reply_text("Inactive.")
         return
     
     city = context.bot_data.get("current_city", "Unknown")
     prog = context.bot_data.get("progress", "0/0")
-    await msg.reply_text(f"📊 **Current Status:**\n• Progress: {prog} cities\n• Currently Scanning: {city}\n\nUse /stop to abort.")
+    await msg.reply_text(f"Status: {prog} cities\nScanning: {city}")
 
 async def cmd_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.effective_message
     if not context.bot_data.get("search_active"):
-        await msg.reply_text("ℹ️ No active search to stop.")
+        await msg.reply_text("Inactive.")
         return
     
     SEARCH_STOP_EVENT.set()
-    await msg.reply_text("🛑 Cancellation signal sent. The bot will stop after the current airport scan (within ~30s).")
+    await msg.reply_text("Stopping.")
 
 async def cmd_logs(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.effective_message
-    logs = get_recent_logs(25)
-    await msg.reply_text(f"📊 **Recent Activity Logs:**\n\n```\n{logs}\n```", parse_mode='Markdown')
+    logs = get_recent_logs(15)
+    await msg.reply_text(f"Logs:\n\n```\n{logs}\n```", parse_mode='Markdown')
 
 async def cmd_results(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.effective_message
@@ -200,70 +198,63 @@ async def cmd_results(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     if not rows:
-        await msg.reply_text("No recent results found. Try running /search first.")
+        await msg.reply_text("No results.")
         return
 
-    text = "📊 **Best Fair Meetup Results:**\n━━━━━━━━━━━━━━━━━━━━━\n\n"
+    text = "Best Fair Meetups:\n\n"
     
     seen = set()
     count = 0
     for row in rows:
         dest, total, out, ret, a_org, a_p, b_org, b_p, gap, fairness = row
         
-        # Deduplicate identical route+date
         key = (dest, out, ret)
         if key in seen: continue
         seen.add(key)
         
-        # Lookup metadata
         dest_info = next((a for a in CANDIDATE_DESTINATIONS if a.iata == dest), None)
-        flag = dest_info.flag if dest_info else "📍"
         city = dest_info.city if dest_info else dest
-        country = dest_info.country if dest_info else ""
         
         link_a = generate_booking_link(a_org, dest, out, ret)
         link_b = generate_booking_link(b_org, dest, out, ret)
         
-        fairness_label = "Balanced ⚖️" if fairness < 15 else "Fair ⚖️" if fairness < 30 else "Lopsided ⚖️"
+        fairness_label = "Balanced" if fairness < 15 else "Fair" if fairness < 30 else "Lopsided"
         
         text += (
-            f"{flag} **{city}, {country}** ({dest})\n"
-            f"📅 {out} to {ret}\n"
-            f"💰 **Total: €{total:.2f}** | {fairness_label}\n"
-            f"👤 Me ({a_org}): €{a_p:.2f} | 👤 Her: €{b_p:.2f}\n"
-            f"⏱️ Gap: {gap}h | 🔗 [Book Me]({link_a}) | [Book Her]({link_b})\n"
-            f"─────────────────────\n"
+            f"**{city}** ({dest})\n"
+            f"{out} to {ret}\n"
+            f"Total: €{total:.2f} | {fairness_label}\n"
+            f"A ({a_org}): €{a_p:.2f} | B: €{b_p:.2f}\n"
+            f"Gap: {gap}h | [Book A]({link_a}) | [Book B]({link_b})\n"
+            f"---\n"
         )
         
         count += 1
-        if count >= 6: break # Show top 6 to keep message size readable
+        if count >= 6: break
     
-    text += "\n⚠️ *Prices fluctuate. Verify manually.*"
     await msg.reply_text(text, parse_mode='Markdown', disable_web_page_preview=True)
     
 async def cmd_discover(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.effective_message
-    await msg.reply_text("🔎 Fetching new shared destinations from Travelpayouts...")
+    await msg.reply_text("Discovering...")
     _, _, providers = get_app_context()
-    # This mode normally prints to stdout, we'll just confirm it ran
     discover_mode(providers)
-    await msg.reply_text("✅ Discovery finished. Shared routes are tracked in the scan engine.")
+    await msg.reply_text("Done.")
 
 async def cmd_health(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.effective_message
     _, _, providers = get_app_context()
-    text = "🏥 **Provider Health Check:**\n"
+    text = "Health:\n"
     for p in providers:
-        status = "✅ Healthy" if p.is_healthy() else "❌ Offline/Error"
-        text += f"• {p.name()}: {status}\n"
-    await msg.reply_text(text, parse_mode='Markdown')
+        status = "OK" if p.is_healthy() else "Err"
+        text += f"{p.name()}: {status}\n"
+    await msg.reply_text(text)
 
 async def cmd_selftest(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.effective_message
     storage, notifier, providers = get_app_context()
-    await msg.reply_text("🛠 Running full system diagnostic... please wait.")
+    await msg.reply_text("Testing...")
     
-    # Capture stdout of selftest
     import io
     import contextlib
     f = io.StringIO()
@@ -271,7 +262,7 @@ async def cmd_selftest(update: Update, context: ContextTypes.DEFAULT_TYPE):
         selftest(storage, notifier, providers)
     
     output = f.getvalue()
-    await msg.reply_text(f"🛠 **System Selftest Results:**\n\n`{output}`", parse_mode='Markdown')
+    await msg.reply_text(f"Result:\n\n`{output}`", parse_mode='Markdown')
 
 if __name__ == '__main__':
     token = os.getenv("TELEGRAM_BOT_TOKEN")

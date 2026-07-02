@@ -76,9 +76,9 @@ def get_best_flight(origins: List[str], destination: str, out_from: str, out_to:
     return best
 
 def monitor_mode(storage: Storage, notifier: Notifier, providers: List[FlightProvider], progress_callback=None) -> None:
-    """Optimized monitoring loop with parallel date window searches."""
+    """Monitoring loop."""
     SEARCH_STOP_EVENT.clear()
-    log_info("--- Running OPTIMIZED MONITOR Mode ---")
+    log_info("--- MONITOR MODE ---")
     
     active_providers = [p for p in providers if p.is_healthy()]
     tp = next((p for p in active_providers if p.name() == "Travelpayouts"), None)
@@ -88,7 +88,7 @@ def monitor_mode(storage: Storage, notifier: Notifier, providers: List[FlightPro
     valid_destinations = []
     
     if tp:
-        log_info("Smart Discovery: Filtering cities with cached data...")
+        log_info("Discovery: Filtering...")
         try:
             milan_routes = set()
             for org in Config.ORIGINS_A:
@@ -98,11 +98,11 @@ def monitor_mode(storage: Storage, notifier: Notifier, providers: List[FlightPro
             common_routes = milan_routes.intersection(riga_routes)
             
             if not common_routes:
-                log_info("⚠️ Smart Discovery returned 0 common routes. Falling back to Full Scan.")
+                log_info("Fallback: Full Scan")
                 valid_destinations = all_destinations
             else:
                 valid_destinations = [d for d in all_destinations if d.iata in common_routes or d.iata in Config.ORIGINS_A or d.iata in Config.ORIGINS_B]
-                log_info(f"Discovery reduced search space from {len(all_destinations)} to {len(valid_destinations)} cities.")
+                log_info(f"Filtered to {len(valid_destinations)} cities.")
         except Exception as e:
             log_error(f"Smart Discovery failed: {e}")
             valid_destinations = all_destinations
@@ -163,11 +163,11 @@ def monitor_mode(storage: Storage, notifier: Notifier, providers: List[FlightPro
         storage.save_results(ranked)
         print_results_table(ranked, "Today's Best Meetup Deals")
     
-    log_info("Scan Finished. Verify manually before booking.")
+    log_info("Scan Finished.")
 
 def verify_mode(storage: Storage, notifier: Notifier, providers: List[FlightProvider]) -> None:
-    """Re-verifies the top candidates using accurate providers (SerpApi, etc.)."""
-    log_info("\n--- Running VERIFY Mode (Confirming Top Results) ---")
+    """Re-verifies."""
+    log_info("\n--- VERIFY MODE ---")
     
     with storage._get_connection() as conn:
         cursor = conn.cursor()
@@ -181,16 +181,14 @@ def verify_mode(storage: Storage, notifier: Notifier, providers: List[FlightProv
         rows = cursor.fetchall()
 
     if not rows:
-        log_info("No recent results found to verify. Run 'monitor' first.")
+        log_info("No results to verify.")
         return
 
-    log_info(f"Verifying {len(rows)} top candidates...")
+    log_info(f"Verifying {len(rows)} candidates...")
     
     for dest_iata, a_origin, b_origin, out_date, ret_date in rows:
-        log_info(f"Verifying {dest_iata} for {out_date}...")
+        log_info(f"Checking {dest_iata} ({out_date})...")
         
-        # We need a dummy window object for get_best_flight
-        # Or just call get_best_flight directly with skip_slow=False
         best_a = get_best_flight([a_origin], dest_iata, out_date, out_date, ret_date, ret_date, providers, skip_slow=False)
         best_b = get_best_flight([b_origin], dest_iata, out_date, out_date, ret_date, ret_date, providers, skip_slow=False)
 
@@ -198,14 +196,14 @@ def verify_mode(storage: Storage, notifier: Notifier, providers: List[FlightProv
             res = score_meetup(best_a, best_b)
             if res:
                 storage.save_results([res])
-                log_info(f"  ✅ Verified: €{res.total_price:.2f} (Source: {res.source})")
-                notifier.send_message(f"✅ **Verified Deal Found!**\n{notifier.format_alert(res)}")
+                log_info(f"Verified: €{res.total_price:.2f}")
+                notifier.send_message(f"Verified Found!\n{notifier.format_alert(res)}")
         else:
-            log_error(f"  ❌ Verification failed for {dest_iata}")
+            log_error(f"Failed for {dest_iata}")
 
 def print_results_table(results: List[MeetupResult], title: str) -> None:
     print(f"\n--- {title} ---")
-    print(f"{'Destination':<25} | {'Total':<8} | {'Me':<8} | {'Her':<8} | {'Fairness'}")
+    print(f"{'Dest':<25} | {'Total':<8} | {'Me':<8} | {'Her':<8} | {'Fair'}")
     print("-" * 75)
     seen = set()
     count = 0
@@ -214,8 +212,8 @@ def print_results_table(results: List[MeetupResult], title: str) -> None:
         if key in seen: continue
         seen.add(key)
         
-        fairness_label = "Good" if res.fairness_penalty < 15 else "Balanced" if res.fairness_penalty < 30 else "Lopsided"
-        dest_display = f"{res.dest_flag} {res.dest_city}"
+        fairness_label = "Good" if res.fairness_penalty < 15 else "Fair" if res.fairness_penalty < 30 else "Poor"
+        dest_display = f"{res.dest_city}"
         
         print(f"{dest_display:<25} | €{res.total_price:<6.2f} | €{res.a_price:<6.2f} | €{res.b_price:<6.2f} | {fairness_label}")
         count += 1
@@ -223,7 +221,7 @@ def print_results_table(results: List[MeetupResult], title: str) -> None:
     print("-" * 75)
 
 def show_latest_results(storage: Storage) -> None:
-    print("\n--- Latest Best Fair Deals from History ---")
+    print("\n--- Latest Deals ---")
     from src.core.airports import CANDIDATE_DESTINATIONS
     with storage._get_connection() as conn:
         cursor = conn.cursor()
@@ -237,10 +235,10 @@ def show_latest_results(storage: Storage) -> None:
         rows = cursor.fetchall()
         
     if not rows:
-        print("No recent results found. Run search first.")
+        print("No results.")
         return
 
-    print(f"{'Destination':<25} | {'Total':<8} | {'Me':<8} | {'Her':<8} | {'Fairness'}")
+    print(f"{'Dest':<25} | {'Total':<8} | {'Me':<8} | {'Her':<8} | {'Fair'}")
     print("-" * 75)
     seen = set()
     count = 0
@@ -252,8 +250,8 @@ def show_latest_results(storage: Storage) -> None:
         
         # Lookup metadata
         dest_info = next((a for a in CANDIDATE_DESTINATIONS if a.iata == dest_iata), None)
-        dest_display = f"{dest_info.flag if dest_info else '📍'} {dest_info.city if dest_info else dest_iata}"
-        fairness_label = "Good" if fairness < 15 else "Balanced" if fairness < 30 else "Lopsided"
+        dest_display = f"{dest_info.city if dest_info else dest_iata}"
+        fairness_label = "Good" if fairness < 15 else "Fair" if fairness < 30 else "Poor"
         
         print(f"{dest_display:<25} | €{total:<6.2f} | €{a_p:<6.2f} | €{b_p:<6.2f} | {fairness_label}")
         count += 1
@@ -323,16 +321,16 @@ def selftest(storage: Storage, notifier: Notifier, providers: List[FlightProvide
 
 def show_menu():
     print("\n" + "="*25)
-    print(" Flight Meet Agent")
+    print(" Flight Meet")
     print("="*25)
-    print("1. Search cheapest meetup (Fast/Free)")
-    print("2. Verify top results (Paid/Accurate)")
-    print("3. View history (Database)")
-    print("4. Discover new cities")
-    print("5. Test providers (Health Check)")
-    print("6. System Selftest")
-    print("7. Send Telegram test")
-    print("8. Clear History (Restart)")
+    print("1. Search")
+    print("2. Verify")
+    print("3. History")
+    print("4. Discover")
+    print("5. Health")
+    print("6. Selftest")
+    print("7. Notify Test")
+    print("8. Clear")
     print("0. Exit")
     return input("\nChoice: ")
 
