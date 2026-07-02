@@ -1,0 +1,47 @@
+name: Flight Check
+
+on:
+  schedule:
+    - cron: '0 */12 * * *' # Every 12 hours
+    - cron: '0 0 * * 0'    # Weekly for discovery
+  workflow_dispatch:
+
+jobs:
+  check-flights:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          
+      - name: Run Monitor
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TRAVELPAYOUTS_TOKEN: ${{ secrets.TRAVELPAYOUTS_TOKEN }}
+          SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
+          TARGET_PRICE_EUR: ${{ secrets.TARGET_PRICE_EUR }}
+          SERPAPI_MONTHLY_BUDGET: ${{ secrets.SERPAPI_MONTHLY_BUDGET }}
+        run: python main.py monitor
+
+      - name: Run Discovery (Weekly)
+        if: github.event.schedule == '0 0 * * 0'
+        env:
+          TRAVELPAYOUTS_TOKEN: ${{ secrets.TRAVELPAYOUTS_TOKEN }}
+        run: python main.py discover
+        
+      - name: Commit results
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add flights.db results.csv
+          git commit -m "Update flight results" || echo "No changes to commit"
+          git push
