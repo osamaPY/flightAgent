@@ -1367,8 +1367,13 @@ async def on_callback(update, context):
         await cb_panel_set(update, context, parts[1], parts[2], parts[3:])
     elif d.startswith("stop_"):
         SEARCH_STOP_EVENT.set()
+        # Immediate visual feedback; the worker wraps up and the completion
+        # card then replaces this with the "stopped early" summary.
         try:
-            await q.answer("Stopping - found deals are saved.", show_alert=False)
+            await q.message.edit_text(
+                "🛑 <b>Stopping the search</b>\n\nWrapping up the current step - "
+                "any deals found so far are saved. Give it a few seconds.",
+                parse_mode='HTML')
         except Exception:
             pass
 

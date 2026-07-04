@@ -80,6 +80,7 @@ def discovery_prescan(
     max_calls: int = 100,
     max_workers: int = 8,
     time_budget_s: float = 60.0,
+    should_stop=None,
     _client=None,
     _graph=None,
 ) -> int:
@@ -97,12 +98,21 @@ def discovery_prescan(
         a blind calendar call on a non-route is a wasted HTTP);
       * at most `max_calls` HTTP calls, `time_budget_s` seconds wall-clock;
       * free provider only (Ryanair) - a broad scan must never cost money;
-      * any failure degrades to "no pre-scan", never to a broken search.
+      * any failure degrades to "no pre-scan", never to a broken search;
+      * `should_stop()` (optional) is polled so a user Stop aborts promptly.
 
     Returns the number of legs saved.
 
     `_client` / `_graph` are injection points for offline tests.
     """
+    def _stopped() -> bool:
+        try:
+            return bool(should_stop and should_stop())
+        except Exception:
+            return False
+
+    if _stopped():
+        return 0
     from src.clients.ryanair_client import RyanairClient
     from src.core.route_graph import get_route_graph
 
@@ -134,7 +144,9 @@ def discovery_prescan(
 
     # -- Fetch calendars in parallel; collect flights, save on this thread ---
     def _fetch(route: Tuple[str, str]) -> list:
-        if (time.time() - started) > time_budget_s:
+        # A queued task becomes an instant no-op once time is up or the user
+        # pressed Stop, so the pool drains fast instead of running every route.
+        if _stopped() or (time.time() - started) > time_budget_s:
             return []
         origin, dest = route
         try:
@@ -145,6 +157,8 @@ def discovery_prescan(
     saved = 0
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
         for flights in pool.map(_fetch, routes):
+            if _stopped():
+                break
             for leg in flights:
                 try:
                     storage.save_flight_leg("Ryanair Calendar", leg)

@@ -490,15 +490,17 @@ def booking_mode(
     # Refreshes the flight_legs price surface from Ryanair's month-level
     # calendar for confirmed routes, so the cheapest-first ordering below
     # runs on fresh data instead of possibly-stale history.
-    try:
-        from src.core.smart_search import discovery_prescan
-        discovery_prescan(
-            storage, req.all_origins,
-            [d.iata for d in all_destinations],
-            req.depart_earliest, req.depart_latest,
-        )
-    except Exception as exc:
-        log_error(f"Discovery pre-scan skipped: {exc}")
+    if not SEARCH_STOP_EVENT.is_set():
+        try:
+            from src.core.smart_search import discovery_prescan
+            discovery_prescan(
+                storage, req.all_origins,
+                [d.iata for d in all_destinations],
+                req.depart_earliest, req.depart_latest,
+                should_stop=SEARCH_STOP_EVENT.is_set,
+            )
+        except Exception as exc:
+            log_error(f"Discovery pre-scan skipped: {exc}")
 
     all_destinations = sort_destinations_by_cheapness(
         all_destinations, storage, origins=req.all_origins,

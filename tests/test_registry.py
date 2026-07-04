@@ -193,3 +193,20 @@ def test_discovery_prescan_no_graph_is_noop(tmp_path):
     )
     assert saved == 0
     assert client.calls == []                            # no blind HTTP
+
+
+def test_discovery_prescan_aborts_on_stop(tmp_path):
+    """A user Stop must abort the pre-scan immediately (no fetches)."""
+    from src.core.smart_search import discovery_prescan
+    from src.core.storage import Storage
+
+    storage = Storage(db_path=str(tmp_path / "test.db"))
+    graph = _FakeGraph(str(tmp_path / "rg.json"), {"BGY": ["VIE", "BUD", "KRK"]})
+    client = _FakeCalendarClient()
+
+    saved = discovery_prescan(
+        storage, ["BGY"], ["VIE", "BUD", "KRK"], "2026-08-01", "2026-08-31",
+        should_stop=lambda: True, _client=client, _graph=graph,
+    )
+    assert saved == 0
+    assert client.calls == []                            # stopped before any call
