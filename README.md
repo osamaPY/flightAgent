@@ -66,7 +66,7 @@ A few decisions worth explaining:
 
 There are 42 tests that run offline (no network, no API key) covering the registry, the route-graph fallback behaviour, the discovery scan, the bot's rendering helpers, and the AI prompt-building with a mocked client.
 
-For more detail there are notes in [docs/](docs/) - [architecture](docs/ARCHITECTURE.md), [providers](docs/PROVIDERS.md), [search layers](docs/SMART_LAYERS.md), and a [codebase tour](docs/CODEBASE_GUIDE.md).
+Full docs are in [guidebook/](guidebook/): [setup](guidebook/SETUP.md), [architecture](guidebook/ARCHITECTURE.md), [providers](guidebook/PROVIDERS.md), [search layers](guidebook/SMART_LAYERS.md), and a [codebase tour](guidebook/CODEBASE_GUIDE.md).
 
 ## Layout
 
@@ -78,7 +78,7 @@ src/core/                  registry, search, scoring, route graph, AI, storage, 
 src/clients/               ryanair, google, duffel, deepseek
 scripts/                   nightly price surface, canary, backups, dashboard
 tests/                     offline tests
-docs/                      architecture and guides
+guidebook/                 setup and architecture docs
 ```
 
 ## A few honest caveats

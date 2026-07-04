@@ -1,14 +1,16 @@
 # Setup And Configuration
 
-Last updated: 2026-07-04
+Last updated: 2026-07-05
 
 ## Prerequisites
 
 - Python 3.11+
-- Telegram bot token from BotFather if using the bot
-- Optional Duffel token for paid GDS quotes
+- A Telegram bot token from BotFather (to run the bot)
+- Optional: a DeepSeek API key for the AI concierge features
+- Optional: a Duffel token for paid GDS quotes
 
-SQLite is built in; the app creates `data/flights.db` automatically.
+SQLite is built in; the app creates `data/flights.db` automatically. It runs
+fully free on Ryanair + Google without any paid keys.
 
 ## Install
 
@@ -24,16 +26,20 @@ On Unix-like shells, use `cp .env.example .env`.
 | Variable | Required | Purpose |
 |---|---|---|
 | `TELEGRAM_BOT_TOKEN` | Bot only | Token from BotFather |
-| `TELEGRAM_CHAT_ID` | Owner/admin | Telegram user ID treated as owner |
+| `TELEGRAM_CHAT_ID` | Owner/admin | Your numeric Telegram user ID (owner) |
 | `REQUIRE_INVITE_CODE` | Optional | `1` makes the bot invite-only |
+| `DEEPSEEK_API_KEY` | Optional | Enables the AI concierge; blank disables it |
+| `DEEPSEEK_MODEL` | Optional | Defaults to `deepseek-chat` |
 | `DUFFEL_TOKEN` | Optional | Enables paid Duffel provider for owner searches |
 | `DUFFEL_DAILY_BUDGET` | Optional | Daily Duffel safety cap, default 50 |
 | `TARGET_PRICE_EUR` | Optional | Price threshold used by older CLI flows |
 | `MAX_API_CALLS_PER_RUN` | Optional | Safety cap for full scans |
 | `JWT_SECRET` | Future/API auth | Present in config, not central to current bot UX |
 
-`ADMIN_SECRET` remains in the environment template, but current owner checks are
-based on `TELEGRAM_CHAT_ID` in `telegram_bot.py`.
+`.env.example` lists exactly these. Copy it to `.env` and fill in what you need;
+at minimum the bot needs `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`. Never
+commit your real `.env` (it is gitignored). Owner checks are based on
+`TELEGRAM_CHAT_ID`.
 
 ## Run The Bot
 
@@ -44,13 +50,21 @@ python telegram_bot.py
 Recommended first flow:
 
 1. Send `/start`.
-2. Tap create group, or send `/newgroup`.
-3. Enter group name, size, and your airports.
-4. Share the generated invite link.
-5. Start `/newsearch <group_id>` after members join.
-6. View `/results_<group_id>`.
+2. Tap New group and type a name.
+3. Enter your airports (a city name like `milan` works, or codes like `BGY, MXP`).
+4. Tap Invite and share the link so friends can join in one tap.
+5. Tap Search now (smart defaults) or Custom to tune the settings, then Launch.
+6. Tap Results, then a city, to see the full breakdown; use Verify before booking.
 
 If `REQUIRE_INVITE_CODE=1`, only invited users can use the bot.
+
+## Run The Tests
+
+```bash
+python -m pytest -q
+```
+
+42 offline tests, no network or API keys required.
 
 ## Run CLI
 

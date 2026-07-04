@@ -46,3 +46,6 @@ data/backups/
 
 # Dashboard output
 data/dashboard.html
+
+# Internal docs (public subset lives in guidebook/)
+docs/

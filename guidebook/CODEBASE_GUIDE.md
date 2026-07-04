@@ -1,8 +1,8 @@
 # Codebase Guide
 
-Current snapshot: 57 files, 37 Python files, 8,787 Python lines.
+Current snapshot: ~46 Python files, ~10,900 Python lines, 5 offline test files.
 
-Last updated: 2026-07-04
+Last updated: 2026-07-05
 
 ## File Map
 
@@ -19,20 +19,25 @@ flight_optimizer/
     search_request.py             ParticipantGroup and SearchRequest
     scoring.py                    Flight, MeetupResult, GroupMeetupResult, ranking
     storage.py                    SQLite schema, migrations, groups, searches, admin
-    smart_search.py               5 smart layers
+    smart_search.py               5 smart layers + calendar-first discovery pre-scan
+    provider_registry.py          capability-tagged registry + discovery/verification tiers
+    providers.py                  provider base and concrete providers (incl. Ryanair Calendar)
+    provider_factory.py           registry-backed builders, health cache, Duffel budget
+    route_graph.py                Ryanair route-graph pruning (cached, fail-open)
     cost_utils.py                 bag costs, transfer costs, sanity helpers
-    providers.py                  provider base and concrete providers
-    provider_factory.py           provider builder, health cache, Duffel budget
+    ai_assistant.py               DeepSeek concierge (recommend a city, things to do)
+    bot_ui.py                     pure, tested UI/render helpers (no telegram imports)
     airports.py                   airport universe and destination helpers
     config.py                     env config and date windows
     timezone_utils.py             timezone helpers
     logger.py                     rotating logging
-    notifier.py                   Telegram notifications
+    notifier.py                   Telegram notifications (used by CLI)
 
   src/clients/
     ryanair_client.py
     google_scraper.py
     duffel_client.py
+    deepseek_client.py            OpenAI-compatible LLM client (fail-soft)
     weather_client.py
     routestack_client.py          inactive/legacy hotel client
 
@@ -53,21 +58,24 @@ flight_optimizer/
     kick_vps.py
 
   tests/
-    test_apis.py
+    test_bot_ui.py                pure UI-helper tests
+    test_registry.py              registry invariants, route graph, discovery pre-scan
+    test_ai_assistant.py          AI prompt-building with a mocked client
+    test_apis.py                  provider health
 
-  docs/
-    *.md
+  docs/                           internal notes (not published)
+  guidebook/                      public docs shipped on GitHub
 ```
 
-Largest files by live line count:
+Largest files by live line count (approx):
 
 | File | Lines | Purpose |
 |---|---:|---|
-| `telegram_bot.py` | 1670 | Main product UX |
-| `src/core/storage.py` | 1240 | SQLite persistence and admin queries |
-| `main.py` | 861 | Search engine and CLI |
-| `src/core/scoring.py` | 553 | Models and ranking |
-| `flight_api_server.py` | 480 | REST API |
+| `src/core/storage.py` | ~1560 | SQLite persistence and admin queries |
+| `telegram_bot.py` | ~1440 | Main product UX (v7) |
+| `main.py` | ~880 | Search engine and CLI |
+| `src/core/scoring.py` | ~550 | Models and ranking |
+| `flight_api_server.py` | ~525 | REST API |
 
 ## Core Models
 
@@ -121,12 +129,13 @@ tested offline in `tests/test_bot_ui.py`.
 ### Results
 
 ```text
-/results_<group_id>
+Results button (or /results_<group_id>)
   -> latest search for group
   -> Storage.get_search_results
   -> city dedup for display
-  -> 4 cards per page
-  -> city detail callback
+  -> compact ranked list (medals for top 3), paginated
+  -> tap a city -> detail card (per-person, fairness, links, Verify/Paid)
+  -> optional AI: "Which should we pick?" / "Things to do"
 ```
 
 ### Admin
@@ -149,6 +158,7 @@ python main.py selftest
 python flight_api_server.py
 python scripts/dashboard.py
 python scripts/backup_db.py
+python -m pytest -q          # 42 offline tests, no network needed
 ```
 
 ## Debugging
