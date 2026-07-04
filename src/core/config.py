@@ -24,44 +24,20 @@ class Config:
     CURRENCY = "EUR"
 
     TARGET_PRICE_EUR = int(os.getenv("TARGET_PRICE_EUR", 200))
-    SERPAPI_MONTHLY_BUDGET = int(os.getenv("SERPAPI_MONTHLY_BUDGET", 90))
     MAX_API_CALLS_PER_RUN = int(os.getenv("MAX_API_CALLS_PER_RUN", 300))
 
+    # ── Telegram ──
     TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
     TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-    ADMIN_SECRET = os.getenv("ADMIN_SECRET", "")
-    TRAVELPAYOUTS_TOKEN = os.getenv("TRAVELPAYOUTS_TOKEN")
-    SERPAPI_KEY = os.getenv("SERPAPI_KEY")
-    RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
-    FLIGHTAPI_KEY = os.getenv("FLIGHTAPI_KEY")
+
+    # ── Duffel (optional paid GDS provider) ──
     DUFFEL_TOKEN = os.getenv("DUFFEL_TOKEN")
 
     # ── DeepSeek LLM (optional AI concierge in the Telegram bot) ──
     DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
     DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
 
-    AMADEUS_CLIENT_ID = os.getenv("AMADEUS_CLIENT_ID")
-    AMADEUS_CLIENT_SECRET = os.getenv("AMADEUS_CLIENT_SECRET")
-    KIWI_TEQUILA_KEY = os.getenv("KIWI_TEQUILA_KEY")
-    AVIATIONSTACK_KEY = os.getenv("AVIATIONSTACK_KEY")
-    SEARCHAPI_KEY = os.getenv("SEARCHAPI_KEY")
-
-    # Routestack MCP (Hotels)
-    ROUTESTACK_API_KEY = os.getenv("ROUTESTACK_API_KEY")
-    ROUTESTACK_API_SECRET = os.getenv("ROUTESTACK_API_SECRET")
-    ROUTESTACK_ACCOUNT_ID = os.getenv("ROUTESTACK_ACCOUNT_ID")
-    ROUTESTACK_BASE_URL = os.getenv("ROUTESTACK_BASE_URL", "https://mcp.routestack.ai")
-
-    # Sandbox for testing
-    ROUTESTACK_SANDBOX_KEY = os.getenv("ROUTESTACK_SANDBOX_KEY")
-    ROUTESTACK_SANDBOX_SECRET = os.getenv("ROUTESTACK_SANDBOX_SECRET")
-    ROUTESTACK_SANDBOX_URL = os.getenv("ROUTESTACK_SANDBOX_URL", "https://evolvemcp.routestack.ai")
-
-    DEATHBYCAPTCHA_USERNAME = os.getenv("DEATHBYCAPTCHA_USERNAME")
-    DEATHBYCAPTCHA_PASSWORD = os.getenv("DEATHBYCAPTCHA_PASSWORD")
-    SCRAPER_PROXY = os.getenv("SCRAPER_PROXY")
-
-    # ── v6: JWT secret for auth ──
+    # ── API auth (future; not central to the current bot) ──
     JWT_SECRET = os.getenv("JWT_SECRET", "")
     JWT_ALGORITHM = "HS256"
     JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "30"))

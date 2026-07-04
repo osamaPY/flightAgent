@@ -2,7 +2,7 @@
 Compatibility shims for removed/moved stdlib modules.
 
 - imghdr.what: removed in Python 3.13; provides a minimal fallback for
-  libraries (e.g. undetected-chromedriver) that still import it.
+  third-party libraries that still import it.
 """
 
 

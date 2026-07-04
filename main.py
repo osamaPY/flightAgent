@@ -6,7 +6,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import List, Optional, Any, Dict, Tuple
 
-# Polyfill imghdr for Python 3.13+ (required by undetected-chromedriver)
+# Polyfill the stdlib `imghdr` module removed in Python 3.13 (some libraries
+# still import it).
 import src.utils.compat  # noqa: F401
 
 # Global cancellation flag for long-running searches

@@ -1,10 +1,9 @@
 """
 Nightly Price Surface Builder - "Own the surface, not the query."
 
-Fable 5's #1 recommendation: precompute the full (origin × destination ×
-holiday) cost table. One batch job at night, then user queries are
-instant database reads + on-demand verification of just the deal
-being acted on.
+Precompute the full (origin × destination × holiday) cost table in one batch
+job at night, so user queries become instant database reads plus on-demand
+verification of just the deal being acted on.
 
 Strategy:
   Tier 1 (FREE - Ryanair calendar): cheapest_per_day for top routes
