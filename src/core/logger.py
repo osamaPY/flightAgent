@@ -1,4 +1,5 @@
 import logging
+import logging.handlers
 import os
 from datetime import datetime
 
@@ -20,8 +21,13 @@ class Logger:
             
             # Prevent adding handlers multiple times
             if not logger.handlers:
-                # File Handler
-                file_handler = logging.FileHandler(os.path.join("data", "activity.log"), encoding='utf-8')
+                # File Handler with rotation (5 MB max, keep 3 backups)
+                file_handler = logging.handlers.RotatingFileHandler(
+                    os.path.join("data", "activity.log"),
+                    encoding='utf-8',
+                    maxBytes=5 * 1024 * 1024,  # 5 MB
+                    backupCount=3,
+                )
                 file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
                 file_handler.setFormatter(file_formatter)
                 logger.addHandler(file_handler)

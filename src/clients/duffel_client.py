@@ -14,7 +14,7 @@ class DuffelClient:
         self.base_url = "https://api.duffel.com/air/offer_requests"
         self.headers = {
             "Authorization": f"Bearer {token}",
-            "Duffel-Version": "v1",
+            "Duffel-Version": "v2",
             "Content-Type": "application/json"
         }
 

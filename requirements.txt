@@ -1,5 +1,16 @@
+# Core
 requests
 python-dotenv
-pytest
+
+# Telegram bot
 python-telegram-bot
-duffel-api
+
+# Flight data (free provider — Google Flights via Protobuf)
+fast-flights==3.0.2
+
+# Local API server
+fastapi
+uvicorn[standard]
+
+# Tests
+pytest

@@ -1,9 +1,48 @@
-# .gitignore
+# Secrets
 .env
+
+# Database files
 *.db
+
+# Python cache
 __pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
-results.csv
+
+# Data exports (generated)
+data/results.csv
+data/leaderboard*.csv
+data/activity.log*
+data/ryanair_cache.json
+data/route_graph.json
+
+# Keep data directory structure
+!data/.gitkeep
+
+# OS files
 .DS_Store
+Thumbs.db
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Distribution
+dist/
+build/
+*.egg-info/
+
+# Playwright MCP session artifacts
+.playwright-mcp/
+
+# DB backups
+data/backups/
+
+# Dashboard output
+data/dashboard.html

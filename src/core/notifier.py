@@ -19,6 +19,10 @@ class Notifier:
         dest_display = f"{dest_info.flag if dest_info else '📍'} **{result.dest_city}** ({result.destination})"
         fairness = "✅ Balanced" if result.fairness_penalty < 15 else "⚖️ Fair" if result.fairness_penalty < 30 else "⚠️ Lopsided"
         
+        # v5.1: nights display
+        nights_val = getattr(result, 'nights', 0)
+        nights_str = f" | 🌙 {nights_val} night{'s' if nights_val != 1 else ''}" if nights_val > 0 else ""
+
         # Weather fetch
         weather_text = ""
         if dest_info:
@@ -28,12 +32,16 @@ class Notifier:
 
         return (
             f"{dest_display}\n"
-            f"💰 €{result.total_price:.2f} ({fairness})\n\n"
+            f"💰 **Total Price: €{result.total_price:.2f}** ({fairness})\n\n"
             f"{weather_text}"
-            f"🅰️ ({result.a_origin}): €{result.a_price:.2f} — [Book]({link_a})\n"
-            f"🅱️ ({result.b_origin}): €{result.b_price:.2f} — [Book]({link_b})\n\n"
-            f"📅 Dates: {result.outbound_date} to {result.return_date}\n"
-            f"⏳ Gap: {result.arrival_gap_hours}h\n"
+            f"🅰️ **Me ({result.a_origin})**: €{result.a_price:.2f} ({result.a_stops} stops)\n"
+            f"🔗 [Book My Flight]({link_a})\n\n"
+            f"🅱️ **Her ({result.b_origin})**: €{result.b_price:.2f} ({result.b_stops} stops)\n"
+            f"🔗 [Book Her Flight]({link_b})\n\n"
+            f"📅 Dates: {result.outbound_date} to {result.return_date}{nights_str}\n"
+            f"⏳ Arrival Gap: {result.arrival_gap_hours}h\n"
+            f"🛰️ Source: {result.source}\n\n"
+            f"❗ *{result.warning}*"
         )
 
     def format_results_list(self, results: list) -> str:
@@ -42,7 +50,9 @@ class Notifier:
         
         text = "Top Deals:\n\n"
         for i, res in enumerate(results[:10]):
-            text += f"{i+1}. **{res.dest_city}** — €{res.total_price:.2f}\n"
+            n = getattr(res, 'nights', 0)
+            nights_suffix = f" | {n}n" if n > 0 else ""
+            text += f"{i+1}. **{res.dest_city}** — €{res.total_price:.2f}{nights_suffix}\n"
             text += f"   {res.outbound_date} | {res.source}\n\n"
         
         return text

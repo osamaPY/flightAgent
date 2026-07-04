@@ -22,6 +22,9 @@ class RyanairClient:
         }
         self.ttl = 3600 * 2  # 2 hours
         self.debug = debug
+        # v5: Connection pooling — reuse TCP connections for 20-50% latency reduction
+        self._session = requests.Session()
+        self._session.headers.update(self.headers)
         self._load_disk_cache()
 
     def _load_disk_cache(self) -> None:
@@ -76,7 +79,7 @@ class RyanairClient:
                     print(f"DEBUG: Calling {url}")
                     print(f"DEBUG: Params: {params}")
                 
-                response = requests.get(url, params=params, headers=self.headers, timeout=15)
+                response = self._session.get(url, params=params, timeout=15)
                 
                 if self.debug:
                     print(f"DEBUG: Status Code: {response.status_code}")
@@ -131,19 +134,132 @@ class RyanairClient:
                 flights = []
                 for f in data['fares']:
                     outbound = f['outbound']
+                    dep_dt = outbound['departureDate']
+                    arr_dt = outbound['arrivalDate']
                     flights.append(Flight(
                         origin=origin,
                         destination=outbound['arrivalAirport']['iataCode'],
                         price=outbound['price']['value'],
-                        outbound_date=outbound['departureDate'].split('T')[0],
+                        outbound_date=dep_dt.split('T')[0],
                         return_date="",
                         stops=0,
-                        arrival_time=outbound['arrivalDate'].replace('T', ' ')[:16],
-                        source="ryanair"
+                        arrival_time=arr_dt.replace('T', ' ')[:16],
+                        departure_time=dep_dt.replace('T', ' ')[:16],
+                        source="ryanair",
+                        airline="FR",
+                        flight_number=outbound.get('flightNumber', ''),
+                        currency=outbound['price'].get('currencyCode', 'EUR'),
+                        deep_link=f"https://www.ryanair.com/en/trip/flights/select?adults=1&"
+                                  f"originIata={origin}&destinationIata={outbound['arrivalAirport']['iataCode']}"
+                                  f"&dateOut={dep_dt.split('T')[0]}",
+                        cabin_bag_included=False,
                     ))
                 return flights
         
         return []
+
+    # ------------------------------------------------------------------
+    # v5: Calendar & surface-building endpoints
+    # ------------------------------------------------------------------
+
+    def cheapest_per_day(
+        self, origin: str, destination: str,
+        date_from: str, date_to: str,
+    ) -> List[Flight]:
+        """Ryanair cheapest-per-day calendar — one call per route-month.
+
+        Returns one Flight per date with the cheapest fare.
+        Foundation of the nightly price surface.
+        """
+        url = (
+            f"https://services-api.ryanair.com/farfnd/3/oneWayFares/"
+            f"{origin}/{destination}/cheapestPerDay"
+        )
+        params = {"outboundDateFrom": date_from, "outboundDateTo": date_to, "currency": "EUR"}
+        data = self._request(url, params)
+        if not data:
+            return []
+        flights = []
+        # Real response: {"outbound": {"fares": [{"day": "2026-07-01",
+        #   "price": {"value": 16.99, ...}, "unavailable": false, ...}]}}
+        fares_list = data.get("outbound", {}).get("fares", [])
+        if not fares_list:
+            fares_list = data if isinstance(data, list) else []
+        for entry in fares_list:
+            if not isinstance(entry, dict):
+                continue
+            # Skip unavailable/sold-out days
+            if entry.get("unavailable") or entry.get("soldOut"):
+                continue
+            try:
+                price_raw = entry.get("price", {})
+                price = price_raw.get("value") if isinstance(price_raw, dict) else entry.get("price", 0)
+                if price is None or float(price) <= 0:
+                    continue
+                # "day" is the date field in calendar responses
+                dep_date = (entry.get("day") or entry.get("departureDate") or "")[:10]
+                if not dep_date:
+                    continue
+                flights.append(Flight(
+                    origin=origin, destination=destination,
+                    price=float(price), outbound_date=dep_date,
+                    return_date="", stops=0,
+                    arrival_time=f"{dep_date} 12:00",
+                    departure_time=f"{dep_date} 06:00",
+                    source="ryanair_calendar", airline="FR",
+                    currency="EUR", is_approximate=True,
+                    cabin_bag_included=False,
+                    deep_link=f"https://www.ryanair.com/en/trip/flights/select?"
+                              f"originIata={origin}&destinationIata={destination}&dateOut={dep_date}",
+                ))
+            except (ValueError, TypeError, KeyError):
+                continue
+        return flights
+
+    def cheapest_from_airport(
+        self, origin: str, date_from: str, date_to: str,
+    ) -> List[Flight]:
+        """v5: All destinations from one airport in one call.
+
+        One request returns cheapest fares to every destination Ryanair
+        flies from origin. Builds the entire outbound price surface.
+        """
+        url = (
+            f"https://services-api.ryanair.com/farfnd/3/oneWayFares/"
+            f"{origin}/cheapestPerDate"
+        )
+        params = {
+            "outboundDateFrom": date_from, "outboundDateTo": date_to,
+            "currency": "EUR", "language": "en", "limit": 200,
+        }
+        data = self._request(url, params)
+        if not data:
+            return []
+        flights = []
+        items = data if isinstance(data, list) else data.get("fares", [])
+        for entry in items:
+            if not isinstance(entry, dict):
+                continue
+            try:
+                outbound = entry.get("outbound", entry)
+                arr = outbound.get("arrivalAirport", {})
+                dest = arr.get("iataCode", "") if isinstance(arr, dict) else ""
+                price_raw = outbound.get("price", {})
+                price = price_raw.get("value") if isinstance(price_raw, dict) else outbound.get("price", 0)
+                dep_date = outbound.get("departureDate", "")[:10]
+                if not dest or not price or not dep_date:
+                    continue
+                flights.append(Flight(
+                    origin=origin, destination=dest, price=float(price),
+                    outbound_date=dep_date, return_date="", stops=0,
+                    arrival_time=outbound.get("arrivalDate", "").replace("T", " ")[:16],
+                    departure_time=outbound.get("departureDate", "").replace("T", " ")[:16],
+                    source="ryanair_airport_sweep", airline="FR",
+                    currency="EUR", is_approximate=True, cabin_bag_included=False,
+                ))
+            except (ValueError, TypeError, KeyError):
+                continue
+        return flights
 
     def round_trip_fare(self, origin: str, destination: str, out_from: str, out_to: str, in_from: str, in_to: str) -> Optional[Flight]:
         """
@@ -166,7 +282,13 @@ class RyanairClient:
             return_date=best_in.outbound_date,
             stops=0,
             arrival_time=best_out.arrival_time,
-            source="ryanair"
+            departure_time=best_out.departure_time,
+            source="ryanair",
+            airline="FR",
+            flight_number=best_out.flight_number,
+            currency="EUR",
+            deep_link=best_out.deep_link,
+            cabin_bag_included=False,
         )
 
 if __name__ == "__main__":
