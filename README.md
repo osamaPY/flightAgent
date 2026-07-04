@@ -3,6 +3,7 @@
 A Telegram bot that works out where a group of friends should meet up when everyone's flying in from a different city.
 
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![tests](https://github.com/osamaPY/flightAgent/actions/workflows/tests.yml/badge.svg)](https://github.com/osamaPY/flightAgent/actions/workflows/tests.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 The hard part of planning a trip with friends spread across Europe isn't finding a cheap flight. It's that "cheap" is different for everyone, and the price you see online isn't what you actually pay once you add a bag and the train from the airport into town. So instead of five people opening twenty tabs each, this scans destinations and dates and ranks cities by what the whole group really pays, door to door.
@@ -64,7 +65,7 @@ A few decisions worth explaining:
 
 **The AI is kept on a short leash.** The recommendation is given only the numbers already computed and told not to invent fares - it's choosing between real options, not making up prices. Every AI call is optional and fails quietly, so the bot never breaks if DeepSeek is down or no key is set.
 
-There are 42 tests that run offline (no network, no API key) covering the registry, the route-graph fallback behaviour, the discovery scan, the bot's rendering helpers, and the AI prompt-building with a mocked client.
+There are 44 tests that run offline (no network, no API key) covering the registry, the route-graph fallback behaviour, the discovery scan, the bot's rendering helpers, manual-member handling, and the AI prompt-building with a mocked client. They run in CI on every push.
 
 Full docs are in [guidebook/](guidebook/): [setup](guidebook/SETUP.md), [architecture](guidebook/ARCHITECTURE.md), [providers](guidebook/PROVIDERS.md), [search layers](guidebook/SMART_LAYERS.md), and a [codebase tour](guidebook/CODEBASE_GUIDE.md).
 

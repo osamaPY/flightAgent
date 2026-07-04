@@ -158,7 +158,7 @@ python main.py selftest
 python flight_api_server.py
 python scripts/dashboard.py
 python scripts/backup_db.py
-python -m pytest -q          # 42 offline tests, no network needed
+python -m pytest -q          # 44 offline tests, no network needed
 ```
 
 ## Debugging

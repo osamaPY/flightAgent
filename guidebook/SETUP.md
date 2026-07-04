@@ -66,7 +66,7 @@ If `REQUIRE_INVITE_CODE=1`, only invited users can use the bot.
 python -m pytest -q
 ```
 
-42 offline tests, no network or API keys required.
+44 offline tests, no network or API keys required (they also run in CI).
 
 ## Run CLI
 
