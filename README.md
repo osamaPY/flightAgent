@@ -53,7 +53,7 @@ To run it 24/7 on a server (AWS free-tier or any Linux VPS), there's a one-comma
 
 ## How it's built
 
-The stack is Python: `python-telegram-bot` for the bot, SQLite (WAL) for storage, `fast-flights` for Google Flights data, Ryanair's public API, an optional Duffel GDS source, DeepSeek for the LLM bits, and a small FastAPI server on the side for debugging.
+The stack is Python: `python-telegram-bot` for the bot, SQLite (WAL) for storage, `fast-flights` for Google Flights data, Ryanair's public API, Travelpayouts (a free flight-data API that keeps working from a server IP), an optional Duffel GDS source, DeepSeek for the LLM bits, and a small FastAPI server on the side for debugging.
 
 A few decisions worth explaining:
 
@@ -65,11 +65,11 @@ A few decisions worth explaining:
 
 **The price is meant to be honest.** Bag fees are per-airline, airport transfers are included, and when only one source has a fare it says so rather than pretending it's confirmed. There's a verify step to re-check a deal live before you book, because a confidently wrong price is worse than no price.
 
-**The AI is kept on a short leash.** The recommendation is given only the numbers already computed and told not to invent fares - it's choosing between real options, not making up prices. Every AI call is optional and fails quietly, so the bot never breaks if DeepSeek is down or no key is set.
+**The AI is kept on a short leash.** The recommendation is given only the numbers already computed and told not to invent fares - it's choosing between real options, not making up prices. There's also an "Ask a question" helper so a non-technical user can type something like "how do I add my friend?" and get a plain answer. Every AI call is optional and fails quietly, so the bot never breaks if DeepSeek is down or no key is set.
 
-There are 44 tests that run offline (no network, no API key) covering the registry, the route-graph fallback behaviour, the discovery scan, the bot's rendering helpers, manual-member handling, and the AI prompt-building with a mocked client. They run in CI on every push.
+There are 65 tests that run offline (no network, no API key) covering the registry, the route-graph fallback behaviour, the discovery scan, the bot's rendering helpers, manual-member handling, the Travelpayouts client, and the AI prompt-building with a mocked client. They run in CI on every push.
 
-Full docs are in [guidebook/](guidebook/): [setup](guidebook/SETUP.md), [architecture](guidebook/ARCHITECTURE.md), [providers](guidebook/PROVIDERS.md), [search layers](guidebook/SMART_LAYERS.md), and a [codebase tour](guidebook/CODEBASE_GUIDE.md).
+Full docs are in [guidebook/](guidebook/): [setup](guidebook/SETUP.md), [architecture](guidebook/ARCHITECTURE.md), [providers](guidebook/PROVIDERS.md), [search layers](guidebook/SMART_LAYERS.md), a [codebase tour](guidebook/CODEBASE_GUIDE.md), and [troubleshooting](guidebook/TROUBLESHOOTING.md). To run it 24/7 on a server, see [deploy/](deploy/README.md).
 
 ## Layout
 

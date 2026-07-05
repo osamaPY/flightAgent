@@ -11,5 +11,8 @@ then dig into whichever part you're curious about.
 | [PROVIDERS.md](PROVIDERS.md) | The provider registry, tiers, Duffel safety, consensus, bags, and transfers |
 | [SMART_LAYERS.md](SMART_LAYERS.md) | The five search layers, route-graph pruning, and calendar-first discovery |
 | [CODEBASE_GUIDE.md](CODEBASE_GUIDE.md) | File map, core models, main flows, and debugging tips |
+| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Real issues we hit and how they were fixed, including the "0 deals on a server" one |
+| [../deploy/README.md](../deploy/README.md) | Run it 24/7 on a VPS or AWS free tier |
 
 New here? Read [SETUP.md](SETUP.md) first, then [COMPLETE_GUIDE.md](COMPLETE_GUIDE.md).
+If a search returns nothing on a server, read [TROUBLESHOOTING.md](TROUBLESHOOTING.md).

@@ -10,7 +10,9 @@ Last updated: 2026-07-05
 - Optional: a Duffel token for paid GDS quotes
 
 SQLite is built in; the app creates `data/flights.db` automatically. It runs
-fully free on Ryanair + Google without any paid keys.
+fully free on Ryanair + Google without any paid keys. A free Travelpayouts
+token is recommended if you host it on a server (see the note below about
+datacenter IPs).
 
 ## Install
 
@@ -30,6 +32,7 @@ On Unix-like shells, use `cp .env.example .env`.
 | `REQUIRE_INVITE_CODE` | Optional | `1` makes the bot invite-only |
 | `DEEPSEEK_API_KEY` | Optional | Enables the AI concierge; blank disables it |
 | `DEEPSEEK_MODEL` | Optional | Defaults to `deepseek-chat` |
+| `TRAVELPAYOUTS_TOKEN` | Optional | Free flight-data API; works from a server IP where scraping is blocked |
 | `DUFFEL_TOKEN` | Optional | Enables paid Duffel provider for owner searches |
 | `DUFFEL_DAILY_BUDGET` | Optional | Daily Duffel safety cap, default 50 |
 | `TARGET_PRICE_EUR` | Optional | Price threshold used by older CLI flows |
@@ -53,12 +56,29 @@ Recommended first flow:
 2. Tap New group and type a name.
 3. Enter your airports (a city name like `milan` works, or codes like `BGY, MXP`).
 4. Add friends: tap Add a friend to enter someone's airports yourself, or tap
-   Invite to share a one-tap join link. Manual friends count in the search but
-   are never messaged; remove them anytime under Manage people.
-5. Tap Search now (smart defaults) or Custom to tune the settings, then Launch.
-6. Tap Results, then a city, to see the full breakdown; use Verify before booking.
+   Invite a friend to share a one-tap join link. Manual friends count in the
+   search but are never messaged; remove them anytime under More.
+5. Tap Find flights for a one-tap search with smart defaults, or Pick dates /
+   options first to choose dates, nights, luggage, direct-only, and region.
+6. Tap See results, then a city, for the full breakdown; use Check live price
+   before booking.
+7. Stuck? Tap Ask a question (needs a DeepSeek key) and type in plain words;
+   the AI helper answers how-to and travel questions.
 
 If `REQUIRE_INVITE_CODE=1`, only invited users can use the bot.
+
+## Deploy It 24/7 (VPS / AWS Free Tier)
+
+To keep the bot running around the clock on a small Linux server, see
+[../deploy/README.md](../deploy/README.md). In short: clone the repo, run
+`bash deploy/setup.sh`, add your token to `.env`, and a `systemd` service keeps
+it alive across crashes and reboots. The bot polls Telegram, so no inbound
+ports are needed.
+
+Server note: flight sources like Google Flights (and some airline sites) block
+datacenter IPs, so on a cloud server lean on the API-based sources that are not
+IP-sensitive: Ryanair's public API and Travelpayouts (set `TRAVELPAYOUTS_TOKEN`).
+See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for the full story.
 
 ## Run The Tests
 
@@ -66,7 +86,7 @@ If `REQUIRE_INVITE_CODE=1`, only invited users can use the bot.
 python -m pytest -q
 ```
 
-44 offline tests, no network or API keys required (they also run in CI).
+65 offline tests, no network or API keys required (they also run in CI).
 
 ## Run CLI
 

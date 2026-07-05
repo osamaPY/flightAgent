@@ -129,11 +129,16 @@ Adding a new source is one `ProviderSpec` in the registry.
 v7 design - "one card that navigates like an app":
 
 - The UI is a single message per chat; every tap edits it in place
-  (no message spam). Screens: Home → Group Hub → Search Panel →
-  Progress → Results → City Detail, with Back everywhere.
-- Search setup is a settings panel with smart defaults (next month,
-  2-4 nights, 10kg, transfers, any flights, Europe) - launch is 1 tap;
-  tap any row to change it. The old 6-step linear wizard is gone.
+  (no message spam). Screens: Home → Group screen → Search setup →
+  Progress → Results → City Detail, with Back everywhere. Less-used
+  actions (my airports, manage people, leave) live behind "More".
+- The group screen leads with one clear "Find flights" button (one-tap
+  smart defaults, then a confirm screen). "Pick dates / options first"
+  opens the guided 6-question setup (dates, nights, luggage, transfers,
+  flights, scope). Both end on the same launch card.
+- A "Ask a question" helper (DeepSeek) lets non-technical users type a
+  plain question and get a simple answer; free text with no pending step
+  is also answered by the helper. Falls back gracefully with no key.
 - Airport entry accepts city names ("milan" → BGY/MXP/LIN picker) as
   well as IATA codes, via `bot_ui.resolve_airports()`.
 - Live progress edits the requester's own card via a sync callback +

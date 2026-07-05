@@ -22,7 +22,8 @@ The current product is a Telegram bot (v7):
    (handy when you already know where they fly from), or send a one-tap invite
    link so they join and enter their own.
 3. Airports accept city names like "milan", not just codes.
-4. Hit Search now for smart defaults, or open the settings panel to tune it.
+4. Tap Find flights for a one-tap search with smart defaults, or Pick dates /
+   options first to tune dates, nights, luggage, direct-only, and region.
 5. The bot scans destinations and dates; live progress updates in place.
 6. Review the ranked city list and tap a city for the full breakdown.
 7. Optionally ask the AI concierge which city to pick and what to do there.

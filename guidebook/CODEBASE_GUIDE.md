@@ -10,7 +10,8 @@ Last updated: 2026-07-05
 flight_optimizer/
   README.md
   main.py                         CLI + provider waterfall + booking_mode
-  telegram_bot.py                 v7 "one card" Telegram UX: hub, panel, results, admin
+  telegram_bot.py                 v7 "one card" Telegram UX: simple group screen,
+                                  guided setup, results, AI ask-a-question helper, admin
   flight_api_server.py            FastAPI local API
   requirements.txt
   start.bat / start_api.bat
@@ -110,9 +111,11 @@ owner gets a "joined" ping.
 ### Search (v7)
 
 ```text
-Group Hub -> "Search now" (defaults) or "Custom" settings panel
-  panel: dates / nights / luggage / transfers / flights / scope
-         all pre-filled, tap-to-change, LAUNCH always 1 tap
+Group screen -> "Find flights" (one-tap smart defaults) or
+                "Pick dates / options first" (guided 6-question setup)
+  settings: dates / nights / luggage / transfers / flights / scope
+            all pre-filled, tap-to-change, LAUNCH always 1 tap
+  (a "Ask a question" AI helper answers how-to questions in plain words)
   -> SearchRequest
   -> Storage.create_search
   -> booking_mode(..., search_request=req) in a thread

@@ -35,6 +35,7 @@ checks inside `get_best_flight`.
 | `RyanairCalendarProvider` | Ryanair `cheapestPerDay` calendar | Free | Discovery | Whole-month fare surface in ~1 call/route (approximate) |
 | `GoogleScraperProvider` | `fast-flights` Google Flights Protobuf | Free | Both | Broad airline coverage (aggregator breadth) |
 | `MultiGoogleScraperProvider` | Google Flights queried in direct/all/calendar modes | Free | Both | Wider search coverage and backup signal |
+| `TravelpayoutsProvider` | Travelpayouts / Aviasales Data API | Free (keyed) | Both | Cached fares over a real API; works from a server IP where scraping is blocked; enabled once `TRAVELPAYOUTS_TOKEN` is set |
 | `DuffelProvider` | Duffel GDS API | Paid | Verification | Independent bookable GDS offers and confidence |
 
 > Note: Amadeus is no longer listed as a free option. Amadeus discontinued its
@@ -118,7 +119,8 @@ Known examples:
 | Eurowings | EW | EUR 16 |
 | Lufthansa / Air France / KLM / BA | LH / AF / KL / BA | EUR 0 assumed included |
 
-The bot also exposes `none` and `checked_23kg` modes through the search wizard.
+The bot also exposes `none` and `checked_23kg` modes through the luggage
+question in the search setup.
 
 ## Transfer Costing
 
@@ -131,8 +133,9 @@ everyone needs destination airport-city transport.
 
 ## Removed Or Inactive Providers
 
-Older docs and `.env.example` still mention several providers that are no
-longer active in the provider factory. Examples include SerpApi, Travelpayouts,
-RapidAPI/Kiwi, Aviationstack, SearchAPI, Amadeus placeholders, and dead airline
-scrapers. They are not part of the live provider list unless explicitly
-re-enabled in code.
+Several providers from earlier iterations are no longer active: SerpApi,
+RapidAPI/Kiwi, Aviationstack, SearchAPI, and dead airline scrapers. Amadeus was
+also dropped after it discontinued its free test tier. They are not part of the
+live provider list unless explicitly re-enabled in code. Travelpayouts, which
+used to be in this list, has been brought back as an active free provider (see
+the table above) because it is a real API that works from a server IP.
