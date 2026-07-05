@@ -3,7 +3,7 @@
 A Telegram bot that works out where a group of friends should meet up when everyone's flying in from a different city.
 
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![tests](https://github.com/osamaPY/flightAgent/actions/workflows/tests.yml/badge.svg)](https://github.com/osamaPY/flightAgent/actions/workflows/tests.yml)
+[![tests](https://github.com/osamaPY/flight-meetup-agent/actions/workflows/tests.yml/badge.svg)](https://github.com/osamaPY/flight-meetup-agent/actions/workflows/tests.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 The hard part of planning a trip with friends spread across Europe isn't finding a cheap flight. It's that "cheap" is different for everyone, and the price you see online isn't what you actually pay once you add a bag and the train from the airport into town. So instead of five people opening twenty tabs each, this scans destinations and dates and ranks cities by what the whole group really pays, door to door.
@@ -34,7 +34,7 @@ Tap that button and the LLM comes back with something like: *"Vienna. It's the c
 ## Running it
 
 ```bash
-git clone https://github.com/osamaPY/flightAgent.git
+git clone https://github.com/osamaPY/flight-meetup-agent.git
 cd flightAgent
 pip install -r requirements.txt
 cp .env.example .env
