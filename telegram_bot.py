@@ -220,13 +220,31 @@ async def scr_hub(update, context, gid):
         lines += ["", f"{icon} Last search: {sr['status']}"
                       f" · {sr.get('result_count', 0)} deals"]
 
+    # Big, unmissable prompt to answer the setup questions.
+    missing = _missing_cfg(context, gid)
+    if len(members) >= 2:
+        if missing:
+            lines += [
+                "",
+                "━━━━━━━━━━━━━━━━━━",
+                "📝 <b>Before searching, set it up</b>",
+                "Tap <b>Set up &amp; search</b> below and answer 6 quick "
+                "questions (dates, nights, luggage...) so I know exactly what "
+                "to look for.",
+            ]
+        else:
+            lines += ["", "✅ <b>Search is set up and ready.</b> "
+                          "Tap Set up &amp; search to review or launch."]
+
     manual_count = sum(1 for m in members if _is_manual(m['telegram_id']))
     rows = [
-        [_btn("🚀 Search now", f"go_{gid}"), _btn("⚙️ Custom", f"cfg_{gid}")],
+        [_btn("📝  SET UP & SEARCH", f"setup_{gid}")],
+        [_btn("⚡ Quick search (smart defaults)", f"go_{gid}")],
         [_btn("➕ Add a friend", f"addf_{gid}"),
          _btn("📤 Invite link", f"inv_{gid}")],
         [_btn("🏆 Results", f"res_{gid}"),
          _btn("✏️ My airports", f"myap_{gid}")],
+        [_btn("❓ How to use this", "help")],
     ]
     last = [_btn("🚪 Leave", f"leave_{gid}")]
     if manual_count:
@@ -319,24 +337,46 @@ async def scr_people(update, context, gid):
 
 async def scr_help(update, context):
     text = (
-        "❓ <b>How it works</b>\n\n"
-        "You and your friends live in different cities and want to meet "
-        "somewhere. I search every destination and date combo, and rank "
-        "cities by the <b>true all-in cost</b> for the whole group - "
-        "flights + luggage fees + airport transfers.\n\n"
-        "① <b>Create a group</b>, share the invite link\n"
-        "② Everyone types where they fly from - city names are fine "
-        "(\"milan\", \"riga\")\n"
-        "③ <b>Search now</b> uses smart defaults, or customize dates, "
-        "nights, bags, transfers, scope\n"
-        "④ Everyone gets pinged when results are in\n"
-        "⑤ Tap a city → full breakdown per person → "
-        "🔎 check the live price before booking\n\n"
-        "<b>Reading results</b>\n"
-        "💎 All-in = flights + bags + transfers\n"
-        "🟢 confirmed by multiple sources · 🔵 single source - verify\n"
-        "Bars show who pays more (fairness).\n\n"
-        "<i>Prices move fast - always tap 🔎 before booking.</i>"
+        "❓ <b>How Flight Meetup works</b>\n\n"
+        "You and your friends live in different cities and want to meet up "
+        "somewhere. Instead of everyone hunting flights separately, I check "
+        "loads of destinations and dates and rank cities by the "
+        "<b>true all-in cost for the whole group</b> - flights + luggage "
+        "fees + airport transfers, not just the sticker price.\n\n"
+
+        "<b>🚶 Getting started (2 minutes)</b>\n"
+        "① <b>Create a group</b> and give it a name.\n"
+        "② <b>Add the people.</b> Either add a friend yourself (just their "
+        "name + home airport - they don't need Telegram), or send the "
+        "invite link so they join with one tap.\n"
+        "③ <b>Say where each person flies from.</b> City names are fine "
+        "(\"milan\", \"riga\") - you don't need airport codes.\n"
+        "④ <b>Set up the search</b> by answering 6 quick questions (below).\n"
+        "⑤ <b>Launch.</b> Everyone in the group gets pinged when the "
+        "results are ready, not just whoever started it.\n\n"
+
+        "<b>📝 The 6 setup questions</b>\n"
+        "📅 <b>Dates</b> - the travel window I'm allowed to look inside.\n"
+        "🌙 <b>Nights</b> - how long the trip is (I price round-trips this "
+        "long).\n"
+        "🧳 <b>Luggage</b> - cabin, checked or none. Bag fees get added to "
+        "the real price, since budget airlines charge extra.\n"
+        "🚆 <b>Transfers</b> - include the train/bus from the airport into "
+        "town for a true door-to-door cost, or flights only.\n"
+        "✈️ <b>Flights</b> - direct only, or cheapest even with a stop.\n"
+        "🌍 <b>Where</b> - all of Europe, Schengen countries only, or "
+        "everywhere.\n\n"
+
+        "<b>🏆 Reading the results</b>\n"
+        "Cities are ranked cheapest-first by the group all-in. Tap any city "
+        "for the full receipt: what each person pays, who found the cheapest "
+        "seat, bags and transfers, and a fairness check so nobody quietly "
+        "overpays.\n"
+        "🟢 confirmed by multiple sources · 🔵 seen at one source\n"
+        "🔎 tap <b>Check live price</b> before you book - prices move fast.\n\n"
+
+        "<i>Tip: once a search finishes, the setup resets so the next trip "
+        "starts fresh. Use ⚡ Quick search to reuse smart defaults instead.</i>"
     )
     await _show(update, context, text, [[HOME_BTN]])
 
@@ -393,6 +433,46 @@ def _settings_intro(context, gid):
     )
 
 
+def _wiz_head(context, gid, key, title, why=""):
+    """A clear, guided question header: which step, progress dots, what we're
+    deciding and why. Makes the setup impossible to miss or misread."""
+    order = REQUIRED_SETTING_KEYS
+    dkey = "dates" if key == "cdates" else key
+    idx = order.index(dkey) if dkey in order else 0
+    done = _cfg_done(context, gid)
+    dots = " ".join("🟢" if k in done else ("🔵" if k == dkey else "⚪")
+                    for k in order)
+    g = Storage().get_group(gid)
+    name = esc(g['name']) if g else ""
+    head = (
+        f"📝 <b>Set up your search - {name}</b>\n"
+        f"Question {idx + 1} of {len(order)}   {dots}\n\n"
+        f"{title}"
+    )
+    if why:
+        head += f"\n<i>{why}</i>"
+    return head
+
+
+async def scr_setup(update, context, gid):
+    """The prominent, hard-to-miss entry to the guided question flow.
+
+    If any of the 6 questions are unanswered it drops the user straight into
+    the first one (and each answer auto-advances to the next). Once every
+    question is answered it shows the ready-to-launch overview instead.
+    """
+    s = Storage()
+    g = s.get_group(gid)
+    if not g:
+        await _show(update, context, "❌ Group not found.", [[HOME_BTN]])
+        return
+    missing = _missing_cfg(context, gid)
+    if missing:
+        await scr_panel_setting(update, context, gid, missing[0])
+    else:
+        await scr_panel(update, context, gid)
+
+
 def _panel_rows(gid, cfg=None, missing=None):
     """Search settings keyboard with the selected destination scope visible."""
     scope = (cfg or {}).get("scope", "europe")
@@ -436,12 +516,7 @@ async def scr_panel_setting(update, context, gid, key):
     if not g:
         await _show(update, context, "❌ Group not found.", [[HOME_BTN]])
         return
-    base = (
-        ui.fmt_settings_panel(g['name'],
-                              len(Storage().get_group_members(gid)), cfg)
-        + _settings_intro(context, gid)
-    )
-    back = _btn("⬅️ Back", f"cfg_{gid}")
+    back = _btn("⬅️ Back to overview", f"cfg_{gid}")
 
     if key == "dates":
         today = datetime.now()
@@ -458,16 +533,19 @@ async def scr_panel_setting(update, context, gid, key):
         rows = [[_btn(lbl, f"cfgv_{gid}_dates_"
                            f"{a.strftime('%Y-%m-%d')}_{b.strftime('%Y-%m-%d')}")]
                 for lbl, a, b in opts if a < b]
-        rows.append([_btn("⌨️ Type custom dates", f"cfgo_{gid}_cdates")])
+        rows.append([_btn("⌨️ Type exact dates", f"cfgo_{gid}_cdates")])
         rows.append([back])
-        await _show(update, context, base + "\n\n📅 <b>When can you travel?</b>",
-                    rows)
+        head = _wiz_head(context, gid, "dates", "📅 <b>When can everyone travel?</b>",
+                         "I'll only look at trips that fall inside this window.")
+        await _show(update, context, head, rows)
 
     elif key == "cdates":
         context.user_data['await'] = {'kind': 'cfg_dates', 'gid': gid}
+        head = _wiz_head(context, gid, "dates",
+                         "⌨️ <b>Type your travel window</b>",
+                         "Send it like the example below.")
         await _show(update, context,
-                    base + "\n\n⌨️ Type the window, e.g.\n"
-                           "<code>2026-08-01 to 2026-08-14</code>",
+                    head + "\n\n<code>2026-08-01 to 2026-08-14</code>",
                     [[back]])
 
     elif key == "nights":
@@ -480,7 +558,9 @@ async def scr_panel_setting(update, context, gid, key):
              _btn("Flexible 3-7", f"cfgv_{gid}_nights_3_7")],
             [back],
         ]
-        await _show(update, context, base + "\n\n🌙 <b>How long?</b>", rows)
+        head = _wiz_head(context, gid, "nights", "🌙 <b>How many nights away?</b>",
+                         "How long the trip lasts - I price round-trips this long.")
+        await _show(update, context, head, rows)
 
     elif key == "lug":
         rows = [
@@ -489,40 +569,46 @@ async def scr_panel_setting(update, context, gid, key):
             [_btn("👜 Personal item only (cheapest)", f"cfgv_{gid}_lug_none")],
             [back],
         ]
-        await _show(update, context,
-                    base + "\n\n🧳 <b>Luggage?</b> Bag fees go into the "
-                           "true cost (budget airlines charge extra).",
-                    rows)
+        head = _wiz_head(context, gid, "lug", "🧳 <b>What luggage will you bring?</b>",
+                         "Bag fees go into the true price - budget airlines "
+                         "charge extra for anything bigger than a personal item.")
+        await _show(update, context, head, rows)
 
     elif key == "xfer":
         rows = [
-            [_btn("🚆 Include airport→city transfers", f"cfgv_{gid}_xfer_1")],
-            [_btn("💰 Flights only", f"cfgv_{gid}_xfer_0")],
+            [_btn("🚆 Yes, include airport→city transfers", f"cfgv_{gid}_xfer_1")],
+            [_btn("💰 No, flights only", f"cfgv_{gid}_xfer_0")],
             [back],
         ]
-        await _show(update, context,
-                    base + "\n\n🚆 <b>Count transfer costs?</b> "
-                           "(e.g. Bergamo→Milan €12)",
-                    rows)
+        head = _wiz_head(context, gid, "xfer",
+                         "🚆 <b>Include airport-to-city transfers?</b>",
+                         "Adds the train or bus from the airport into town "
+                         "(e.g. Bergamo→Milan ~€12) for a real door-to-door cost.")
+        await _show(update, context, head, rows)
 
     elif key == "dir":
         rows = [
-            [_btn("🟢 Any flights (cheapest)", f"cfgv_{gid}_dir_0")],
-            [_btn("🎯 Direct only", f"cfgv_{gid}_dir_1")],
+            [_btn("🟢 Cheapest, stops are fine", f"cfgv_{gid}_dir_0")],
+            [_btn("🎯 Direct flights only", f"cfgv_{gid}_dir_1")],
             [back],
         ]
-        await _show(update, context, base + "\n\n✈️ <b>Connections ok?</b>",
-                    rows)
+        head = _wiz_head(context, gid, "dir",
+                         "✈️ <b>Direct only, or cheapest?</b>",
+                         "Flights with a stop are often cheaper but take longer.")
+        await _show(update, context, head, rows)
 
     elif key == "scope":
         rows = [
-            [_btn("🌍 Europe (includes non-Schengen)", f"cfgv_{gid}_scope_europe")],
+            [_btn("🌍 All of Europe", f"cfgv_{gid}_scope_europe")],
             [_btn("🛂 Schengen countries only", f"cfgv_{gid}_scope_schengen")],
             [_btn("🌐 Everywhere", f"cfgv_{gid}_scope_anywhere")],
             [back],
         ]
-        await _show(update, context, base + "\n\n🌍 <b>Where to look?</b>",
-                    rows)
+        head = _wiz_head(context, gid, "scope",
+                         "🌍 <b>Where should we look for a meeting point?</b>",
+                         "Which countries to consider. Schengen skips places "
+                         "that may need a separate visa or border check.")
+        await _show(update, context, head, rows)
 
     else:
         await scr_panel(update, context, gid)
@@ -550,6 +636,18 @@ async def cb_panel_set(update, context, gid, key, value_parts):
         await scr_panel_setting(update, context, gid, missing[0])
     else:
         await scr_panel(update, context, gid)
+
+
+async def scr_quick(update, context, gid):
+    """Quick path: accept the smart defaults for every setting and show the
+    overview so the user can see exactly what will run, then launch in one tap.
+    """
+    if not Storage().get_group(gid):
+        await _show(update, context, "❌ Group not found.", [[HOME_BTN]])
+        return
+    for k in REQUIRED_SETTING_KEYS:
+        _mark_cfg_done(context, gid, k)
+    await scr_panel(update, context, gid)
 
 
 # ═══════════════════════════ SEARCH RUNNER ═══════════════════════════
@@ -1450,8 +1548,10 @@ async def on_callback(update, context):
                             group_label=g['name'] if g else None)
 
     # ── search ──
+    elif d.startswith("setup_"):
+        await scr_setup(update, context, d[6:])
     elif d.startswith("go_") or d.startswith("quick_"):
-        await launch_search(update, context, d.split("_", 1)[1])
+        await scr_quick(update, context, d.split("_", 1)[1])
     elif d.startswith("cfg_") or d.startswith("wizpick_"):
         await scr_panel(update, context, d.split("_", 1)[1])
     elif d.startswith("cfgl_"):
