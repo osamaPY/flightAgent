@@ -197,6 +197,20 @@ def verify_result(
         "details": details,
     }
     storage.save_verification_event(result_id, event)
+
+    # Write the fresh, live data back into the stored result so the card shows
+    # corrected prices and fills any missing detail (e.g. departure times).
+    # Keep the original confidence label; this pass is about price/detail
+    # accuracy, not re-deriving consensus.
+    fresh.dest_city = saved.get("dest_city", "") or fresh.dest_city
+    fresh.dest_country = saved.get("dest_country", "") or fresh.dest_country
+    fresh.confidence_label = saved.get("confidence_label") or fresh.confidence_label
+    try:
+        storage.update_group_result(result_id, fresh)
+        event["updated"] = True
+    except Exception:
+        event["updated"] = False
+
     return {"ok": True, "result": fresh.to_dict(), **event}
 
 

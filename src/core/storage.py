@@ -1284,6 +1284,38 @@ class Storage:
             ))
             conn.commit()
 
+    def update_group_result(self, result_id: int, result) -> None:
+        """Overwrite an existing result row in place with fresh data (a
+        re-scored GroupMeetupResult). Keeps the same id, search_id, and dates;
+        refreshes prices, per-person breakdown, and all detail fields. Used by
+        the 'recheck / correct' flow to fill missing info and fix pricing."""
+        import json
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE results SET
+                    participants_json = ?,
+                    a_origin = ?, a_price = ?, b_origin = ?, b_price = ?,
+                    total_price = ?, a_stops = ?, b_stops = ?,
+                    arrival_gap_hours = ?, source = ?, is_approximate = ?,
+                    fairness_penalty = ?, grand_total = ?, transfer_cost = ?,
+                    bag_cost = ?, flight_airlines = ?, flight_numbers = ?,
+                    confidence_label = ?, nights = ?
+                WHERE id = ?
+            """, (
+                json.dumps([p.to_dict() for p in result.participants]),
+                result.a_origin, result.a_price, result.b_origin, result.b_price,
+                result.total_price, result.a_stops, result.b_stops,
+                result.arrival_gap_hours, result.source,
+                1 if result.is_approximate else 0,
+                result.fairness_penalty, result.grand_total,
+                result.transfer_cost, result.bag_cost,
+                result.flight_airlines, result.flight_numbers,
+                result.confidence_label, result.nights,
+                result_id,
+            ))
+            conn.commit()
+
     def update_search_result_count(self, search_id: str) -> None:
         """Update the cached result count for a search."""
         with self._get_connection() as conn:

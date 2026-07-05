@@ -907,7 +907,7 @@ async def scr_results(update, context, gid, page=0):
             nav.append(_btn("▶️", f"rp_{gid}_{page + 1}"))
         rows.append(nav)
     if ai.available() and len(deduped) >= 2:
-        rows.append([_btn("✨ Which should we pick?", f"aipick_{gid}")])
+        rows.append([_btn("✨ Rank the best (AI opinion)", f"aipick_{gid}")])
     rows.append([_btn("🔄 Refresh", f"res_{gid}"),
                  _btn("⬅️ Group", f"hub_{gid}")])
     await _show(update, context, text, rows)
@@ -946,7 +946,7 @@ async def scr_city(update, context, gid, dest):
     for i, r in enumerate(matching[:4], 1):
         rid = r.get('id')
         if rid:
-            rows.append([_btn(f"🔎 Check live price #{i}", f"ver_{rid}"),
+            rows.append([_btn(f"🔄 Recheck & update #{i}", f"ver_{rid}"),
                          _btn(f"📝 I booked #{i}", f"paid_{rid}")])
     if ai.available():
         city = best.get('dest_city') or ui.city_of(dest)
@@ -985,7 +985,14 @@ async def cb_verify(update, context, rid):
     for p in result.get('details', {}).get('participants', []):
         lines.append(f"{esc(p.get('label', '?'))} · {esc(p.get('origin', '?'))} "
                      f"· {eur(p.get('price', 0))}")
+    if result.get('updated'):
+        lines += ["", "✅ Saved this deal with the fresh live prices and details."]
     lines += ["", "<i>Book only if the checkout page matches this.</i>"]
+    # Drop the cached deals so the next results/detail view reloads the
+    # corrected row from the database.
+    context.user_data.pop('r_all', None)
+    context.user_data.pop('r_deals', None)
+    context.user_data.pop('r_gid', None)
     await note.edit_text("\n".join(lines), parse_mode='HTML')
 
 
@@ -1032,7 +1039,9 @@ async def cb_ai_pick(update, context, gid):
         return
     g = Storage().get_group(gid)
     name = g['name'] if g else "your group"
-    note = await q.message.reply_text("✨ Weighing cost, fairness and vibe…")
+    note = await q.message.reply_text(
+        f"✨ Reading all {len(deals)} options and weighing cost, fairness "
+        f"and vibe…")
     text = await asyncio.to_thread(ai.recommend_meetup, deals, name)
     if not text:
         await note.edit_text(
@@ -1040,9 +1049,9 @@ async def cb_ai_pick(update, context, gid):
             "already sorted cheapest-first, so #1 is your best-value pick.")
         return
     await note.edit_text(
-        f"✨ <b>AI pick - {esc(name)}</b>\n\n{esc(text)}\n\n"
-        f"<i>AI suggestion from the real computed deals. "
-        f"Always tap 🔎 to verify the live price before booking.</i>",
+        f"✨ <b>AI's top picks - {esc(name)}</b>\n\n{esc(text)}\n\n"
+        f"<i>AI opinion from the real computed deals. "
+        f"Always tap Recheck to confirm the live price before booking.</i>",
         parse_mode='HTML')
 
 

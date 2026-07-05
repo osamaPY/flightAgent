@@ -56,8 +56,9 @@ def _grand(r: dict) -> float:
 
 
 def recommend_meetup(deals: List[dict], group_name: str = "",
-                     limit: int = 6) -> Optional[str]:
-    """Recommend which meetup city to pick, reasoning over real deals only."""
+                     limit: int = 15) -> Optional[str]:
+    """Rank the best meetup cities, reasoning over the real deals only. Reads
+    all the options (up to `limit`) and explains why the top few stand out."""
     if not deals:
         return None
     client = _client()
@@ -96,19 +97,22 @@ def recommend_meetup(deals: List[dict], group_name: str = "",
 
     system = (
         "You are a concise, upbeat travel assistant helping a group of friends "
-        "choose ONE city to meet in. You are given a ranked list of real, "
+        "choose where to meet. You are given a ranked list of real, "
         "already-computed options with true all-in group costs, per-person "
         "prices, trip length, a fairness 'spread' (smaller = everyone pays "
         "similarly), and a price-confidence label. "
-        "Recommend ONE option and briefly say why (cost, fairness, and a touch "
-        "of destination appeal). You MAY mention a strong runner-up in one line. "
+        "Read ALL the options, then give your top 3, each on its own line as "
+        "'1) City - one short reason', weighing cost, fairness, trip length "
+        "and a touch of destination appeal. Finish with one line: your single "
+        "top pick and why. "
         "STRICT RULES: use ONLY the numbers provided - never invent prices, "
-        "flights, airlines, or dates. Keep it under 90 words. No markdown "
-        "headers. Warm and human, like texting a friend."
+        "flights, airlines, or dates. Keep the whole reply under 140 words. No "
+        "markdown headers. Warm and human, like texting a friend."
     )
-    user = (f"Group: {group_name or 'our group'}\n\nOptions:\n{digest}\n\n"
-            "Which should we pick, and why?")
-    out = client.chat(system, user, max_tokens=260, temperature=0.6)
+    user = (f"Group: {group_name or 'our group'}\n\n"
+            f"All options (already sorted cheapest-first):\n{digest}\n\n"
+            "Which 3 are the best, and why? Then your single top pick.")
+    out = client.chat(system, user, max_tokens=420, temperature=0.6)
     return _store(key, out) if out else None
 
 
