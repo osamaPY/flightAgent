@@ -935,6 +935,14 @@ async def scr_city(update, context, gid, dest):
                      f"<b>{eur(float(r.get('grand_total') or r['total_price']))}</b>")
 
     rows = []
+    # Booking links first: each person books their own leg from their own city.
+    out, ret = best['outbound_date'], best['return_date']
+    for p in (best.get('participants') or []):
+        origin = p.get('origin', '')
+        link = p.get('deep_link') or ui.gf_link(origin, dest, out, ret)
+        if isinstance(link, str) and link.startswith("http"):
+            label = f"🎫 Book {p.get('label', '?')} ({origin}→{dest})"
+            rows.append([InlineKeyboardButton(label[:60], url=link)])
     for i, r in enumerate(matching[:4], 1):
         rid = r.get('id')
         if rid:
