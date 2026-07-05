@@ -1,9 +1,12 @@
 @echo off
 title Flight Meet
+rem Use UTF-8 so the emoji the bot/CLI print don't crash the Windows console.
+chcp 65001 >nul
+set PYTHONIOENCODING=utf-8
 :menu
 cls
 echo ==============================
-echo       FLIGHT MEET v4.1
+echo       FLIGHT MEET v7
 echo ==============================
 echo.
 echo  [1] Start Bot
