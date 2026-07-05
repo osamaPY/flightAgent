@@ -124,6 +124,17 @@ def test_settings_panel_renders_schengen_scope_label():
     assert "Schengen countries only" in text
 
 
+def test_settings_panel_renders_once_and_stays_short():
+    # Regression: implicit string concatenation used to make "─" * 18 repeat
+    # the whole panel 18x, blowing past Telegram's 4096-char limit.
+    cfg = ui.default_search_config()
+    text = ui.fmt_settings_panel("nerds trip", 2, cfg)
+    assert text.count("Search - nerds trip") == 1
+    assert text.count("🌍 <b>Where</b>") == 1
+    assert text.count("─" * 18) == 2          # exactly the two divider rows
+    assert len(text) < 1000                   # nowhere near the 4096 limit
+
+
 def test_nights_label_fixed_vs_range():
     assert ui.nights_label({"min_n": 3, "max_n": 3}) == "3 nights"
     assert ui.nights_label({"min_n": 2, "max_n": 4}) == "2-4 nights"

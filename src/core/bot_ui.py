@@ -205,20 +205,24 @@ def nights_label(cfg: dict) -> str:
 
 def fmt_settings_panel(group_name: str, member_count: int, cfg: dict) -> str:
     """The one-card search setup: all settings visible, launch always 1 tap."""
-    return (
-        f"\U0001f50d <b>Search - {esc(group_name)}</b>\n"
-        f"\U0001f465 {member_count} member{'s' if member_count != 1 else ''}"
-        f" \u00b7 everything below is tap-to-change\n"
-        f"\u2500" * 18 + "\n"
-        f"\U0001f4c5 <b>Dates</b>  {esc(cfg.get('start', '?'))} \u2192 {esc(cfg.get('end', '?'))}\n"
-        f"\U0001f319 <b>Nights</b>  {nights_label(cfg)}\n"
-        f"\U0001f9f3 <b>Luggage</b>  {LUGGAGE_LABELS.get(cfg.get('luggage'), '?')}\n"
-        f"\U0001f686 <b>Transfers</b>  {'included' if cfg.get('transfers', True) else 'flights only'}\n"
-        f"\u2708\ufe0f <b>Flights</b>  {'direct only' if cfg.get('direct') else 'any (cheapest)'}\n"
-        f"\U0001f30d <b>Where</b>  {SCOPE_LABELS.get(cfg.get('scope'), '?')}\n"
-        f"\u2500" * 18 + "\n"
-        f"Ready when you are - hit Launch \U0001f680"
-    )
+    rule = "\u2500" * 18
+    members = f"{member_count} member{'s' if member_count != 1 else ''}"
+    transfers = "included" if cfg.get("transfers", True) else "flights only"
+    flights = "direct only" if cfg.get("direct") else "any (cheapest)"
+    lines = [
+        f"\U0001f50d <b>Search - {esc(group_name)}</b>",
+        f"\U0001f465 {members} \u00b7 everything below is tap-to-change",
+        rule,
+        f"\U0001f4c5 <b>Dates</b>  {esc(cfg.get('start', '?'))} \u2192 {esc(cfg.get('end', '?'))}",
+        f"\U0001f319 <b>Nights</b>  {nights_label(cfg)}",
+        f"\U0001f9f3 <b>Luggage</b>  {LUGGAGE_LABELS.get(cfg.get('luggage'), '?')}",
+        f"\U0001f686 <b>Transfers</b>  {transfers}",
+        f"\u2708\ufe0f <b>Flights</b>  {flights}",
+        f"\U0001f30d <b>Where</b>  {SCOPE_LABELS.get(cfg.get('scope'), '?')}",
+        rule,
+        "Ready when you are - hit Launch \U0001f680",
+    ]
+    return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------

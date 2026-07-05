@@ -110,10 +110,19 @@ def _kb(rows):
     return InlineKeyboardMarkup(rows) if rows else None
 
 
+def _clip(text):
+    """Keep a card under Telegram's 4096-char hard limit (leave headroom for
+    HTML tags the API counts). Truncating is always better than crashing."""
+    if text and len(text) > 3900:
+        return text[:3880] + "\n…(truncated)"
+    return text
+
+
 async def _show(update, context, text, rows=None):
     """THE core UI primitive: edit the tapped card in place; if that's not
     possible (command entry, message too old), send a fresh card.
     Returns the message that now shows the card."""
+    text = _clip(text)
     markup = _kb(rows)
     q = update.callback_query
     if q and q.message:
@@ -126,9 +135,13 @@ async def _show(update, context, text, rows=None):
             if "not modified" in str(e).lower():
                 return q.message
             # fall through - send a fresh card
-    return await update.effective_message.reply_text(
-        text, parse_mode='HTML',
-        disable_web_page_preview=True, reply_markup=markup)
+    try:
+        return await update.effective_message.reply_text(
+            text, parse_mode='HTML',
+            disable_web_page_preview=True, reply_markup=markup)
+    except BadRequest as e:
+        log_error(f"_show send failed: {e}")
+        return None
 
 
 def _btn(label, data):
@@ -1602,6 +1615,13 @@ if __name__ == '__main__':
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND,
                                    on_message))
     app.add_handler(CallbackQueryHandler(on_callback))
+
+    async def on_error(update, context):
+        """Log any unhandled handler exception instead of crashing / spamming
+        the console. Keeps the bot alive no matter what a screen throws."""
+        log_error(f"unhandled handler error: {context.error}")
+
+    app.add_error_handler(on_error)
 
     # ── Startup loop (kept from v6) ──
     import requests
