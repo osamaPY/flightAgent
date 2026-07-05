@@ -84,6 +84,24 @@ def test_recommend_empty_deals_none(monkeypatch):
     assert ai.recommend_meetup([], "Crew") is None
 
 
+def test_ask_returns_plain_answer(monkeypatch):
+    fake = _FakeClient()
+    _patch(monkeypatch, fake)
+    out = ai.ask("how do I add my friend?")
+    assert out == "Go with Vienna - cheapest and fairest."
+    # The helper's system prompt should describe the bot so answers are on-topic
+    sysmsg = fake.calls[0]["system"].lower()
+    assert "flight meetup" in sysmsg and "group" in sysmsg
+    assert "how do i add my friend?" in fake.calls[0]["user"].lower()
+
+
+def test_ask_unavailable_and_empty(monkeypatch):
+    _patch(monkeypatch, _FakeClient(key=""))
+    assert ai.ask("anything") is None
+    _patch(monkeypatch, _FakeClient())
+    assert ai.ask("   ") is None                # empty question, no LLM call
+
+
 def test_city_vibe_prompt_and_cache(monkeypatch):
     fake = _FakeClient()
     _patch(monkeypatch, fake)

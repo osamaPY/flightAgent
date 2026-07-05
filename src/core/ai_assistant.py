@@ -112,6 +112,43 @@ def recommend_meetup(deals: List[dict], group_name: str = "",
     return _store(key, out) if out else None
 
 
+_BOT_GUIDE = (
+    "You are the friendly in-app help assistant inside a Telegram bot called "
+    "Flight Meetup. What the bot does: a group of friends each live in a "
+    "different city, and it finds the cheapest European city for them all to "
+    "fly to and meet, counting the real cost - flights + bag fees + the "
+    "train/bus from the airport into town. "
+    "How people use it: 'Make a group', then 'Add a friend' (type their name "
+    "and home airport yourself) or 'Invite a friend' (send a link they tap to "
+    "join). Then 'Find flights' runs a search with sensible defaults, or 'Pick "
+    "dates / options first' lets them choose the dates, number of nights, "
+    "luggage, direct-only vs cheapest, and which region. 'See results' shows "
+    "cities ranked cheapest-first; tapping a city shows what each person pays "
+    "and a button to check the live price before booking. "
+    "It only covers destinations in Europe (not other continents yet). "
+    "Answer the person like a patient, non-technical friend: simple words, "
+    "warm, and SHORT (under 80 words). No markdown headers. If they ask for "
+    "something the bot cannot do, say so kindly and suggest the closest thing "
+    "it can do. Point them to the exact button to tap when it helps."
+)
+
+
+def ask(question: str, group_context: str = "") -> Optional[str]:
+    """Free-text help: answer a user's question about using the bot or their
+    trip, in plain simple language. Best-effort; None if the LLM is off."""
+    question = (question or "").strip()
+    if not question:
+        return None
+    client = _client()
+    if not client.available():
+        return None
+    user = question
+    if group_context:
+        user += f"\n\n(their current group: {group_context})"
+    out = client.chat(_BOT_GUIDE, user, max_tokens=300, temperature=0.5)
+    return out or None
+
+
 def city_vibe(city: str, country: str = "", nights: int = 3,
               month: str = "") -> Optional[str]:
     """A short, fun 'what to do there' idea for the trip length."""

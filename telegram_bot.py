@@ -161,29 +161,31 @@ async def scr_home(update, context):
     groups = s.list_user_groups(_tid(update))
 
     if groups:
-        text = (
-            "✈️ <b>Flight Meetup</b>\n"
-            "Pick a group - or create a new one.\n"
-        )
+        text = "✈️ <b>Flight Meetup</b>\n\nTap your group to open it:"
         rows = []
         for g in groups[:8]:
             n = len(s.get_group_members(g['id']))
-            rows.append([_btn(f"✈️ {g['name']}  ·  {n} member{'s' if n != 1 else ''}",
+            rows.append([_btn(f"✈️ {g['name']}  ·  {n} "
+                              f"{'person' if n == 1 else 'people'}",
                               f"hub_{g['id']}")])
+        rows.append([_btn("➕ New group", "newgrp"), _btn("❓ Help", "help")])
     else:
         text = (
             "✈️ <b>Flight Meetup</b>\n\n"
-            "Find the cheapest &amp; fairest city for you and your friends "
-            "to meet - flights, bags and transfers all included in one "
-            "true price.\n\n"
-            "① Create a group\n"
-            "② Friends join with one tap\n"
-            "③ Launch a search - I do the rest\n"
+            "Meeting up with friends from different cities? I find the "
+            "cheapest place for everyone to fly to.\n\n"
+            "It's easy:\n"
+            "1. Make a group\n"
+            "2. Add your friends (or send them a link)\n"
+            "3. Tap Find flights\n\n"
+            "👇 Start here:"
         )
-        rows = []
-
-    action = [_btn("➕ New group", "newgrp"), _btn("❓ How it works", "help")]
-    rows.append(action)
+        rows = [
+            [_btn("➕  MAKE A GROUP", "newgrp")],
+            [_btn("❓ How it works", "help")],
+        ]
+    if ai.available():
+        rows.append([_btn("💬 Ask a question", "ask")])
     if _is_owner(update):
         rows.append([_btn("🛡 Admin", "adm_dash")])
     await _show(update, context, text, rows)
@@ -200,7 +202,7 @@ async def scr_hub(update, context, gid):
     members = s.get_group_members(gid)
     me = _tid(update)
 
-    lines = [f"✈️ <b>{esc(g['name'])}</b>", ""]
+    lines = [f"✈️ <b>{esc(g['name'])}</b>", "", "<b>Who's coming</b>"]
     for m in members:
         if m['telegram_id'] == me:
             who = "You"
@@ -209,49 +211,57 @@ async def scr_hub(update, context, gid):
             if _is_manual(m['telegram_id']):
                 who += " <i>(added by you)</i>"
         lines.append(f"👤 {who} - {esc(', '.join(m['origins']))}")
+
     if len(members) < 2:
-        lines += ["", "💡 Add a friend's airports below (or invite them) "
-                      "so we have at least 2 people to search for."]
+        # Only one person yet: the one thing to do is add someone.
+        lines += ["", "👉 Add one more person, then tap <b>Find flights</b>.",
+                  "You can add their airport yourself, or send them the invite."]
+        rows = [
+            [_btn("➕ Add a friend", f"addf_{gid}")],
+            [_btn("📤 Invite a friend", f"inv_{gid}")],
+            [_btn("💬 Ask a question", "ask"), _btn("❓ Help", "help")],
+            [_btn("🏠 Home", "home")],
+        ]
+        await _show(update, context, "\n".join(lines), rows)
+        return
 
+    lines += ["", "👉 Tap <b>Find flights</b> and I'll do the rest."]
     searches = s.list_searches_by_group(gid, limit=1)
-    if searches:
-        sr = searches[0]
-        icon = {"running": "🔍", "completed": "✅"}.get(sr['status'], "·")
-        lines += ["", f"{icon} Last search: {sr['status']}"
-                      f" · {sr.get('result_count', 0)} deals"]
+    if searches and searches[0].get('result_count'):
+        lines += [f"🏆 Last search found {searches[0]['result_count']} deals - "
+                  f"see them below."]
 
-    # Big, unmissable prompt to answer the setup questions.
-    missing = _missing_cfg(context, gid)
-    if len(members) >= 2:
-        if missing:
-            lines += [
-                "",
-                "━━━━━━━━━━━━━━━━━━",
-                "📝 <b>Before searching, set it up</b>",
-                "Tap <b>Set up &amp; search</b> below and answer 6 quick "
-                "questions (dates, nights, luggage...) so I know exactly what "
-                "to look for.",
-            ]
-        else:
-            lines += ["", "✅ <b>Search is set up and ready.</b> "
-                          "Tap Set up &amp; search to review or launch."]
-
-    manual_count = sum(1 for m in members if _is_manual(m['telegram_id']))
     rows = [
-        [_btn("📝  SET UP & SEARCH", f"setup_{gid}")],
-        [_btn("⚡ Quick search (smart defaults)", f"go_{gid}")],
+        [_btn("🔎  FIND FLIGHTS", f"go_{gid}")],
+        [_btn("🎛 Pick dates / options first", f"setup_{gid}")],
+        [_btn("🏆 See results", f"res_{gid}")],
         [_btn("➕ Add a friend", f"addf_{gid}"),
-         _btn("📤 Invite link", f"inv_{gid}")],
-        [_btn("🏆 Results", f"res_{gid}"),
-         _btn("✏️ My airports", f"myap_{gid}")],
-        [_btn("❓ How to use this", "help")],
+         _btn("📤 Invite a friend", f"inv_{gid}")],
+        [_btn("💬 Ask a question", "ask"),
+         _btn("❓ Help", "help")],
+        [_btn("⚙️ More", f"opts_{gid}"), HOME_BTN],
     ]
-    last = [_btn("🚪 Leave", f"leave_{gid}")]
-    if manual_count:
-        last.insert(0, _btn("👥 Manage people", f"ppl_{gid}"))
-    rows.append(last)
-    rows.append([HOME_BTN])
     await _show(update, context, "\n".join(lines), rows)
+
+
+async def scr_options(update, context, gid):
+    """Tucked-away, less-used actions so the main group screen stays simple."""
+    s = Storage()
+    g = s.get_group(gid)
+    if not g:
+        await _show(update, context, "❌ Group not found.", [[HOME_BTN]])
+        return
+    members = s.get_group_members(gid)
+    manual_count = sum(1 for m in members if _is_manual(m['telegram_id']))
+    rows = [[_btn("✏️ Change my airports", f"myap_{gid}")]]
+    if manual_count:
+        rows.append([_btn("👥 Manage added people", f"ppl_{gid}")])
+    rows.append([_btn("🚪 Leave this group", f"leave_{gid}")])
+    rows.append([_btn("⬅️ Back", f"hub_{gid}")])
+    await _show(update, context,
+                f"⚙️ <b>Options - {esc(g['name'])}</b>\n\nAnything you need less "
+                f"often lives here.",
+                rows)
 
 
 async def scr_invite(update, context, gid):
@@ -375,10 +385,12 @@ async def scr_help(update, context):
         "🟢 confirmed by multiple sources · 🔵 seen at one source\n"
         "🔎 tap <b>Check live price</b> before you book - prices move fast.\n\n"
 
-        "<i>Tip: once a search finishes, the setup resets so the next trip "
-        "starts fresh. Use ⚡ Quick search to reuse smart defaults instead.</i>"
+        "<i>Tip: not sure about something? Tap \"Ask a question\" and just "
+        "type it in plain words.</i>"
     )
-    await _show(update, context, text, [[HOME_BTN]])
+    rows = [[_btn("💬 Ask a question", "ask")]] if ai.available() else []
+    rows.append([HOME_BTN])
+    await _show(update, context, text, rows)
 
 
 # ═══════════════════════ SEARCH SETTINGS PANEL ═══════════════════════
@@ -640,15 +652,26 @@ async def cb_panel_set(update, context, gid, key, value_parts):
 
 
 async def scr_quick(update, context, gid):
-    """Quick path: accept the smart defaults for every setting and show the
-    overview so the user can see exactly what will run, then launch in one tap.
-    """
-    if not Storage().get_group(gid):
+    """The easy path: use smart defaults and show a simple confirm screen with
+    one obvious Search button. No questions, minimal reading."""
+    s = Storage()
+    g = s.get_group(gid)
+    if not g:
         await _show(update, context, "❌ Group not found.", [[HOME_BTN]])
         return
     for k in REQUIRED_SETTING_KEYS:
         _mark_cfg_done(context, gid, k)
-    await scr_panel(update, context, gid)
+    cfg = _cfg(context, gid)
+    text = (
+        ui.fmt_settings_panel(g['name'], len(s.get_group_members(gid)), cfg)
+        + "\n\nTap <b>Search now</b> to go, or change anything first."
+    )
+    rows = [
+        [_btn("🚀  SEARCH NOW", f"cfgl_{gid}")],
+        [_btn("🎛 Change dates / options", f"setup_{gid}")],
+        [_btn("⬅️ Back", f"hub_{gid}")],
+    ]
+    await _show(update, context, text, rows)
 
 
 # ═══════════════════════════ SEARCH RUNNER ═══════════════════════════
@@ -958,6 +981,38 @@ async def cb_verify(update, context, rid):
     await note.edit_text("\n".join(lines), parse_mode='HTML')
 
 
+async def scr_ask(update, context):
+    """Prompt the user to type a question for the AI helper."""
+    if not ai.available():
+        await scr_help(update, context)
+        return
+    context.user_data['await'] = {'kind': 'ai_help'}
+    await _show(update, context,
+                "💬 <b>Ask me anything</b>\n\nType your question below - how to "
+                "use the app, what something means, or where to go. I'll keep "
+                "it simple.\n\n<i>For example: \"how do I add my friend?\"</i>",
+                [[_btn("⬅️ Back", "home")]])
+
+
+async def _answer_question(update, context, text):
+    """Send a free-text question to the AI helper and reply in plain language."""
+    if not text:
+        await update.effective_message.reply_text("Type your question 🙂")
+        context.user_data['await'] = {'kind': 'ai_help'}
+        return
+    note = await update.effective_message.reply_text("💬 One sec…")
+    ans = await asyncio.to_thread(ai.ask, text)
+    if not ans:
+        await note.edit_text(
+            "Tap a button to get around 👇",
+            reply_markup=_kb([[HOME_BTN, _btn("❓ Help", "help")]]))
+        return
+    await note.edit_text(
+        f"💬 {esc(ans)}",
+        parse_mode='HTML',
+        reply_markup=_kb([[_btn("💬 Ask another", "ask"), HOME_BTN]]))
+
+
 async def cb_ai_pick(update, context, gid):
     """✨ AI recommendation across the group's ranked deals."""
     q = update.callback_query
@@ -1186,12 +1241,22 @@ async def on_message(update, context):
     """All free-text lands here; dispatch on the awaited flag."""
     awaiting = context.user_data.pop('await', None)
     if not awaiting:
+        # No pending step: treat anything they type as a question for the
+        # AI helper, so a confused user can just ask in plain words.
+        text = (update.message.text or "").strip()
+        if text and ai.available():
+            await _answer_question(update, context, text)
+            return
         await update.effective_message.reply_text(
             "Tap a button to get around 👇",
             reply_markup=_kb([[HOME_BTN, _btn("❓ Help", "help")]]))
         return
 
     kind = awaiting['kind']
+
+    if kind == 'ai_help':
+        await _answer_question(update, context, (update.message.text or "").strip())
+        return
 
     if kind == 'grp_name':
         name = update.message.text.strip()[:60]
@@ -1539,6 +1604,8 @@ async def on_callback(update, context):
         await scr_home(update, context)
     elif d in ("help", "guide"):
         await scr_help(update, context)
+    elif d == "ask":
+        await scr_ask(update, context)
     elif d == "newgrp":
         await start_newgroup(update, context)
     elif d == "noop":
@@ -1549,6 +1616,8 @@ async def on_callback(update, context):
         await scr_hub(update, context, d[4:])
     elif d.startswith("inv_"):
         await scr_invite(update, context, d[4:])
+    elif d.startswith("opts_"):
+        await scr_options(update, context, d[5:])
     elif d.startswith("leave_"):
         await scr_leave(update, context, d[6:])
     elif d.startswith("leavey_"):
