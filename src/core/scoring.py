@@ -22,6 +22,7 @@ class Flight:
     deep_link: str = ""             # Direct booking URL
     cabin_bag_included: bool = False  # True = cabin bag in fare
     offer_expires_at: str = ""      # ISO timestamp when quote becomes stale
+    layover: str = ""               # human summary of stops, e.g. "1h20m in FRA"
 
 
 @dataclass
@@ -40,6 +41,8 @@ class ParticipantFlight:
     bag_cost: float = 0.0           # 10kg carry-on for this person
     bag_included: bool = False
     is_approximate: bool = False
+    departure_time: str = ""        # "YYYY-MM-DD HH:MM" at the origin
+    layover: str = ""               # human summary of stops, e.g. "1h20m in FRA"
 
     def to_dict(self) -> dict:
         return {
@@ -51,6 +54,8 @@ class ParticipantFlight:
             "flight_number": self.flight_number,
             "deep_link": self.deep_link,
             "arrival_time": self.arrival_time,
+            "departure_time": self.departure_time,
+            "layover": self.layover,
             "source": self.source,
             "transfer_cost": self.transfer_cost,
             "bag_cost": self.bag_cost,
@@ -340,6 +345,8 @@ def score_group_meetup(
             flight_number=f.flight_number,
             deep_link=f.deep_link,
             arrival_time=f.arrival_time,
+            departure_time=getattr(f, "departure_time", ""),
+            layover=getattr(f, "layover", ""),
             source=f.source,
             transfer_cost=round(person_transfer + dest_transfer, 2),
             bag_cost=person_bag_actual,

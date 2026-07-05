@@ -149,6 +149,63 @@ def fmt_datetime(s: str) -> str:
         return s
 
 
+def _fmt_dur(minutes: float) -> str:
+    m = int(round(minutes))
+    h, mm = divmod(m, 60)
+    return f"{h}h{mm:02d}m" if h else f"{mm}m"
+
+
+def journey_duration(dep_local: str, dep_iata: str,
+                     arr_local: str, arr_iata: str) -> str:
+    """Total travel time from origin departure to destination arrival, made
+    timezone-correct with the airport offset map. Empty string if we can't be
+    sure (unknown timezone or unparseable times). For a connecting flight this
+    total includes the waiting/layover time."""
+    try:
+        from src.core.timezone_utils import AIRPORT_UTC_OFFSET
+        do = AIRPORT_UTC_OFFSET.get((dep_iata or "").upper())
+        ao = AIRPORT_UTC_OFFSET.get((arr_iata or "").upper())
+        if do is None or ao is None:
+            return ""
+        d = datetime.strptime(dep_local[:16], "%Y-%m-%d %H:%M") - timedelta(hours=do)
+        a = datetime.strptime(arr_local[:16], "%Y-%m-%d %H:%M") - timedelta(hours=ao)
+        mins = (a - d).total_seconds() / 60.0
+        if mins <= 0 or mins > 60 * 48:
+            return ""
+        return _fmt_dur(mins)
+    except Exception:
+        return ""
+
+
+def fmt_arrivals(participants: List[dict]) -> List[str]:
+    """Landing coordination: who lands when (all at the same destination, so
+    same timezone), each person's gap after the first, and the total spread."""
+    rows = []
+    for p in participants:
+        t = p.get("arrival_time") or ""
+        try:
+            dt = datetime.strptime(t[:16], "%Y-%m-%d %H:%M")
+        except Exception:
+            continue
+        rows.append((dt, p.get("label", "?")))
+    if len(rows) < 2:
+        return []
+    rows.sort(key=lambda x: x[0])
+    first = rows[0][0]
+    out = ["", "\U0001f6ec <b>Landing times</b> (same airport)"]
+    for dt, who in rows:
+        gap = (dt - first).total_seconds() / 60.0
+        when = f"{dt.strftime('%a')} {dt.strftime('%b')} {dt.day}, {dt.strftime('%H:%M')}"
+        tail = "" if gap < 1 else f" (+{_fmt_dur(gap)} after the first)"
+        out.append(f"• {esc(who)} - {when}{tail}")
+    spread = (rows[-1][0] - first).total_seconds() / 60.0
+    if spread < 1:
+        out.append("Everyone lands together.")
+    else:
+        out.append(f"Whole group lands within {_fmt_dur(spread)}.")
+    return out
+
+
 def progress_bar(pct: int, width: int = 12) -> str:
     pct = max(0, min(100, int(pct)))
     filled = int(width * pct / 100)
@@ -455,7 +512,13 @@ def fmt_result_detail(r: dict, rank: Optional[int] = None) -> str:
             airline = esc(p.get("airline", "") or "")
             flight_no = esc(p.get("flight_number", "") or "")
             psource = esc(_source_label(p.get("source") or r.get("source") or ""))
-            stops = _stops_label(p.get("stops", 0))
+            stops_txt = _stops_label(p.get("stops", 0))
+            journey = journey_duration(p.get("departure_time", "") or "",
+                                       p.get("origin", ""), p.get("arrival_time", "") or "",
+                                       dest)
+            if journey:
+                stops_txt += f" · {journey} total"
+            layover = esc(p.get("layover", "") or "")
             arrival = esc(p.get("arrival_time", "") or "")
             bag_note = "included" if p.get("bag_included") else eur(person_bag)
             route_link = p.get("deep_link") or gf_link(p.get("origin", ""), dest, out, ret)
@@ -464,7 +527,7 @@ def fmt_result_detail(r: dict, rank: Optional[int] = None) -> str:
                 tag = " \U0001f4b8 cheapest"
             elif len(participants) > 1 and idx == priciest:
                 tag = " \U0001f4b0 pays most"
-            meta = [origin, stops, f"via {psource}"]
+            meta = [origin, stops_txt, f"via {psource}"]
             if airline:
                 meta.append(f"airline {airline}")
             if flight_no:
@@ -475,13 +538,20 @@ def fmt_result_detail(r: dict, rank: Optional[int] = None) -> str:
                 f"  fare {eur(price)} · bag {bag_note} · transfer {eur(person_xfer)}\n"
                 f"  {' · '.join(meta)}"
             )
+            if layover:
+                lines.append(f"  connection: {layover}")
+            elif int(p.get("stops", 0) or 0) > 0:
+                lines.append("  has a stop - check the connection when booking")
             if arrival:
                 lines.append(f"  arrives {esc(fmt_datetime(arrival))}")
             lines.append(f"  <a href=\"{route_link}\">Open ticket search</a>")
         lines.append(f"\n\u2696\ufe0f Fairness: {_fairness(spread)} (spread {eur(spread)})")
-        if arrival_gap > 0:
+        arrivals_block = fmt_arrivals(participants)
+        if arrivals_block:
+            lines += arrivals_block
+        elif arrival_gap > 0:
             lines.append(
-                f"\U0001f552 Everyone lands within {arrival_gap:.1f}h of each other")
+                f"\U0001f552 Whole group lands within {arrival_gap:.1f}h of each other")
 
     conf = r.get("confidence_label", "")
     if conf:

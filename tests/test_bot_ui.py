@@ -84,6 +84,34 @@ def test_fmt_date_windows_safe():
     assert ui.fmt_date("garbage") == "garbage"
 
 
+def test_journey_duration_tz_aware():
+    # BGY and VIE are both UTC+2 in the map, so this is a plain 1h25m.
+    assert ui.journey_duration("2026-08-07 12:20", "BGY",
+                               "2026-08-07 13:45", "VIE") == "1h25m"
+    # Unknown airport -> empty (we don't guess a timezone)
+    assert ui.journey_duration("2026-08-07 12:20", "ZZZ",
+                               "2026-08-07 13:45", "VIE") == ""
+    # Garbage -> empty, never raises
+    assert ui.journey_duration("nope", "BGY", "nope", "VIE") == ""
+
+
+def test_fmt_arrivals_shows_gaps():
+    parts = [
+        {"label": "You", "arrival_time": "2026-08-07 13:45"},
+        {"label": "Sara", "arrival_time": "2026-08-07 16:15"},
+    ]
+    block = "\n".join(ui.fmt_arrivals(parts))
+    assert "Landing times" in block
+    assert "You" in block and "Sara" in block
+    assert "+2h30m after the first" in block
+    assert "within 2h30m" in block
+
+
+def test_fmt_arrivals_needs_two_times():
+    assert ui.fmt_arrivals([{"label": "You", "arrival_time": "2026-08-07 13:45"}]) == []
+    assert ui.fmt_arrivals([{"label": "You"}, {"label": "Sara"}]) == []
+
+
 def test_progress_bar_bounds():
     assert ui.progress_bar(0) == "░" * 12
     assert ui.progress_bar(100) == "▓" * 12
